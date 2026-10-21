@@ -7,3 +7,5 @@ sentencepiece==0.2.0
 fastapi==0.115.12
 uvicorn==0.34.2
 python-multipart==0.0.20
+pypdf==5.9.0
+olefile==0.47

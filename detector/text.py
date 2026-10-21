@@ -9,8 +9,8 @@ LANGUAGES = {
     "en": "English", "hi": "Hindi", "ta": "Tamil", "kn": "Kannada",
     "hi_en": "Hinglish", "ta_en": "Tanglish", "kn_en": "Kanglish",
 }
-MAX_CHARS = 12000
-MAX_WORDS = 150
+MAX_CHARS = 100000
+MAX_WORDS = 20000
 
 
 def clean_text(text: str) -> str:
@@ -43,5 +43,5 @@ def validate_text(text: str, language: str) -> str:
     if count < minimum or not any(c.isalpha() for c in cleaned):
         raise ValueError(f"Please enter at least {minimum} words of text after cleaning.")
     if count > MAX_WORDS:
-        raise ValueError("Please choose a short passage of up to 150 words. This model was trained on short text.")
+        raise ValueError(f"Please use a document with up to {MAX_WORDS:,} words.")
     return cleaned

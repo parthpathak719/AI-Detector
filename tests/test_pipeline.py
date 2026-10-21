@@ -14,7 +14,10 @@ def test_cleaning_preserves_indic_marks_and_joiners():
 class Encoder:
     def token_count(self, text):
         return len(text.split()) + 2
-    def encode(self, texts):
+    def chunks(self, text):
+        words = text.split()
+        return [' '.join(words[i:i + 126]) for i in range(0, len(words), 126)]
+    def encode(self, texts, task=None):
         return np.zeros((len(texts), 768))
 
 
@@ -24,7 +27,7 @@ class Classifier:
         self.calls = 0
     def predict_proba(self, texts, embeddings):
         self.calls += 1
-        return np.array([self.probabilities])
+        return np.tile(self.probabilities, (len(texts), 1))
 
 
 def detector(binary):
@@ -51,9 +54,34 @@ def test_attribution_is_conditional_and_uncertainty_is_explicit():
     assert ai.artifacts['task3_codemix']['model'].calls == 1
 
 
-def test_short_code_mixed_text_has_no_family_and_long_tokens_are_rejected():
+def test_short_code_mixed_text_has_no_family_and_long_text_is_segmented():
     service = detector([.1, .9])
     assert service.predict('kal main market gaya', 'hi_en')['family'] is None
-    service.encoder.token_count = lambda _: 129
-    with pytest.raises(ValueError, match='128-token'):
-        service.predict('there are enough words here to submit a passage', 'en')
+    result = service.predict('word ' * 300, 'en')
+    assert result['chunk_count'] == 3
+    assert result['word_count'] == 300
+    assert result['family']['analyzed_segments'] == 3
+
+
+def test_document_aggregation_weights_words_and_filters_human_segments():
+    service = detector([.1, .9])
+    class VariableClassifier:
+        def predict_proba(self, texts, embeddings):
+            return np.array([[.1, .9], [.8, .2]])
+    service.artifacts['task1_binary']['model'] = VariableClassifier()
+    result = service.predict('word ' * 150, 'en')
+    assert result['scores']['ai'] == pytest.approx((126 * .9 + 24 * .2) / 150)
+    assert result['ai_segments'] == 1
+    assert result['family']['analyzed_segments'] == 1
+
+
+def test_task_specific_encoder_is_used_for_attribution():
+    service = detector([.1, .9])
+    service.artifacts['task2_attribution']['metadata']['encoder'] = {'fine_tuned_last_layer': 'attribution.safetensors'}
+    calls = []
+    def encode(texts, task=None):
+        calls.append(task)
+        return np.zeros((len(texts), 768))
+    service.encoder.encode = encode
+    service.predict('this passage has enough words for a family prediction', 'en')
+    assert calls == ['task1_binary', 'task2_attribution']
