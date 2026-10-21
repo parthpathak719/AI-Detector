@@ -1,0 +1,27 @@
+{
+  "encoder": "google/muril-base-cased",
+  "revision": "afd9f36c7923d54e97903922ff1b260d091d202f",
+  "tasks": {
+    "task1_binary": {
+      "checked_vectors": 4,
+      "minimum_cosine": 0.9999999403953552,
+      "max_absolute_error": 5.960464477539063e-08,
+      "cleaning_changed_rows": 0,
+      "cleaning_checked_rows": 3476
+    },
+    "task2_attribution": {
+      "checked_vectors": 7,
+      "minimum_cosine": 0.9999999403953552,
+      "max_absolute_error": 5.960464477539063e-08,
+      "cleaning_changed_rows": 0,
+      "cleaning_checked_rows": 2952
+    },
+    "task3_codemix": {
+      "checked_vectors": 3,
+      "minimum_cosine": 0.9999999403953552,
+      "max_absolute_error": 8.288770914077759e-08,
+      "cleaning_changed_rows": 0,
+      "cleaning_checked_rows": 1232
+    }
+  }
+}
