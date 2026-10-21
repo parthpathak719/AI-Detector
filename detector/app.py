@@ -9,9 +9,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from detector.service import Detector
+from detector.documents import extract_document, MAX_FILE_BYTES, SUPPORTED
+from detector.text import MAX_CHARS
 
 STATIC = Path(__file__).parent / "static"
-MAX_BODY = 64 * 1024
+MAX_BODY = MAX_FILE_BYTES + 64 * 1024
 Language = Literal["en", "hi", "ta", "kn", "hi_en", "ta_en", "kn_en"]
 
 
@@ -30,7 +32,7 @@ class BodyLimit:
                 return
             size += len(message.get("body", b""))
             if size > MAX_BODY:
-                return await JSONResponse({"detail": "Upload is too large. Use a UTF-8 text file under 48 KB."}, status_code=413)(scope, receive, send)
+                return await JSONResponse({"detail": "Upload is too large. Use a document under 10 MB."}, status_code=413)(scope, receive, send)
             chunks.append(message.get("body", b""))
             if not message.get("more_body", False):
                 break
@@ -84,7 +86,7 @@ def health():
 
 
 class TextRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=12000)
+    text: str = Field(min_length=1, max_length=MAX_CHARS)
     language: Language
 
 
@@ -109,17 +111,17 @@ async def analyze_text(body: TextRequest):
 @app.post("/api/analyze-file")
 async def analyze_file(file: UploadFile = File(...), language: Language = Form(...)):
     try:
-        if Path(file.filename or "").suffix.lower() not in (".txt", ".md"):
-            raise HTTPException(415, "Upload a UTF-8 .txt or .md file.")
-        content = await file.read(48001)
-        if len(content) > 48000:
-            raise HTTPException(413, "Please upload a text file under 48 KB.")
+        if Path(file.filename or "").suffix.lower() not in SUPPORTED:
+            raise HTTPException(415, "Upload a .txt, .md, .pdf, .docx or .doc file.")
+        content = await file.read(MAX_FILE_BYTES + 1)
+        if len(content) > MAX_FILE_BYTES:
+            raise HTTPException(413, "Please upload a file under 10 MB.")
         try:
-            text = content.decode("utf-8-sig")
-        except UnicodeDecodeError as e:
-            raise HTTPException(422, "The file must be UTF-8 text.") from e
-        if "\x00" in text:
-            raise HTTPException(422, "This file contains binary data. Upload plain text.")
-        return await analyze(text, language)
+            text, notes = await run_in_threadpool(extract_document, file.filename, content)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        result = await analyze(text, language)
+        result["warnings"].extend(notes)
+        return result
     finally:
         await file.close()

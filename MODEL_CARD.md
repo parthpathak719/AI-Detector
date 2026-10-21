@@ -39,10 +39,16 @@ The original study selected hyperparameters on validation before pooling train/v
 - The original unseen-generator study found weak transfer for Muse. This new training run has not repeated that leave-one-generator-out evaluation; it makes no improved unseen-generator claim.
 - The 65% detector / 60% family uncertainty markers are interface heuristics, not optimized selective-classification thresholds or confidence intervals.
 - Scores reflect balanced, cleaned research data and can be misleading under different real-world class proportions, prompts, domains, model versions or paraphrasing.
-- The original feature extractor truncates at 128 tokens. Reported test metrics use those original cached features, including any truncated examples. The app instead rejects inputs above 128 tokens; the task metrics are not an exact performance estimate for that restricted input subset.
+- The original feature extractor truncates at 128 tokens. Reported test metrics use those original cached features, including any truncated examples. The app now partitions long text into non-overlapping windows of at most 128 tokens, without discarding words. The task metrics do not measure this document aggregation workflow.
 - Training-only AI sentence trimming and label-balanced length filtering cannot be replicated on unknown input. Inference applies only label-independent strict cleaning.
-- Texts below 8 words have no supported attribution result even when the code-mixed detector accepts them. Long documents, mixed human/AI passages, PDF parsing and token-level highlights are not supported.
+- Texts below 8 words have no supported attribution result even when the code-mixed detector accepts them. Long documents are supported through segment aggregation, and searchable PDF/DOCX/Word 97–2003 DOC text can be extracted. Mixed-authorship accuracy, OCR, and token-level attribution are not supported or validated.
 - Full MuRIL fine-tuning was not performed. The present experiment tunes only the hybrid classifier and its feature settings.
+
+## Document aggregation (v2)
+
+Each cleaned word appears once, in a contiguous segment that fits the original encoder window. Segment probabilities are averaged using cleaned word counts. This prevents a tiny final segment from having the same weight as a full segment. The resulting score is a model-score aggregate, **not a calibrated document probability or fraction of AI-authored content**. Overall family attribution runs only when the aggregate detector predicts AI, and uses AI-leaning segments with at least eight words; family probabilities are weighted by segment word count × AI score. Mixed human/AI segments are displayed individually. No new accuracy claim is made for long documents.
+
+Limits: 100,000 raw/extracted characters, 20,000 cleaned words, 10 MB upload, 300 PDF pages, and at most 1,024 analysis segments. These are resource limits, not changes to the classifier or its trained token window. All classifier files and previous evaluation results remain unchanged.
 
 ## Next useful experiment
 

@@ -1,8 +1,10 @@
 # Origin — AI text detection & family attribution
 
-A working web application built from the **ProjectPhase_Progress 2** research project. Paste text or upload a UTF-8 `.txt` / `.md` file. The application predicts human vs AI and, for AI predictions, the closest of **Gemini, Muse and Sarvam**.
+A working web application built from the **ProjectPhase_Progress 2** research project. Paste text or upload a `.txt`, `.md`, `.pdf`, `.docx` or `.doc` document. The application predicts human vs AI and, for AI predictions, the closest of **Gemini, Muse and Sarvam**.
 
 Supports English, Hindi, Tamil, Kannada, Hinglish, Tanglish and Kanglish. Choose the language explicitly: script detection cannot reliably distinguish English from Romanized code-mixed text.
+
+![Origin dark document-analysis interface](docs/interface.png)
 
 ## Run locally
 
@@ -37,14 +39,18 @@ The three trained classifiers are included in `artifacts/`. Setup downloads the 
 
 ### What the interface does
 
-- Paste text or upload a small UTF-8 `.txt` / `.md` file (48 KB maximum).
+- Paste up to **100,000 characters / 20,000 words**, or upload a document of up to **10 MB** (the same extracted-text limits apply).
 - Routes monolingual inputs to Task 1 and code-mixed inputs to Task 3.
-- Runs Task 2 family attribution only for an AI prediction with at least 8 cleaned words.
-- Shows calibrated model scores and flags close predictions. The 65% detection and 60% attribution uncertainty flags are **heuristics**, not validated abstention thresholds.
-- Enforces the short-text scope: 8–150 cleaned words, or 4–150 for code-mixed input, and at most 128 MuRIL tokens. It rejects longer passages instead of silently truncating them.
-- Processes submitted text in memory. It does not save passages or send them to a generation API. Access logs contain request paths, not request bodies.
+- Runs Task 2 family attribution only for an AI-leaning overall prediction, using AI-leaning segments with at least 8 cleaned words.
+- Shows calibrated segment scores, word-weighted document scores, segment detail and JSON report export. Flags close predictions. The 65% detection and 60% attribution uncertainty flags are **heuristics**, not validated abstention thresholds.
+- Splits long documents at word boundaries into independent windows of at most 128 MuRIL tokens. Every cleaned word is included exactly once. Minimum input remains 8 words, or 4 for code-mixed text.
+- Does not retain submitted content or send it to a generation API. Extraction and inference use memory; the multipart framework may use temporary upload storage, closed after each request. Access logs contain request paths, not request bodies.
 
-PDF, DOCX and full-document classification are not implemented. Save a short excerpt as plain text.
+Text/Markdown must use UTF-8. PDF extraction supports searchable text (up to 300 pages); scanned PDFs require OCR first. DOCX extraction covers main-body paragraphs and tables. Legacy DOC support covers unencrypted Word 97–2003 compound documents; older or unsupported variants should be saved as DOCX. Extraction is native Python, with no Word or LibreOffice installation required. Images, embedded objects, headers and footnotes are not analyzed. PDF pages without text are reported rather than silently treated as human.
+
+**Document scores are not percentages of AI-authored words.** The detector averages segment probabilities weighted by cleaned word count. Attribution averages only eligible AI-leaning segments, weighted by word count × AI score. The overall label uses the larger aggregate score. Segment results may disagree with one another. The existing classifiers were trained on short passages; aggregate document scores have not been separately calibrated or benchmarked for long documents or mixed authorship. The short-text metrics below must not be advertised as long-document accuracy.
+
+The dark interface supports drag-and-drop upload, a visible elapsed timer during long requests, per-segment inspection and optional JSON report download. No input or report is saved server-side. CPU inference on long documents may take minutes on slower machines.
 
 ## Model and measured results
 
@@ -59,6 +65,21 @@ The production pipeline uses **frozen 768-dimensional MuRIL masked-mean embeddin
 These are **separate task metrics on the existing strict-cleaned test splits**, not end-to-end application accuracy or fresh independent data. Tuning improved code-mixed test accuracy by one example, and slightly reduced the other two task scores. We retain the configurations chosen by training-only cross-validation rather than selecting models after looking at test results. There is no claim of a statistically established overall improvement.
 
 Read [the model card](MODEL_CARD.md) for methodology, limitations and the cross-task split issue. Detailed search traces, confusion matrices, calibration metrics and per-language results are in [reports/](reports/).
+
+### What was tuned, and why attribution is below the presentation's 85.9%
+
+MuRIL's weights were **not fine-tuned**. A 12-candidate search tuned classifier `C`, embedding weight, character n-gram range and `min_df`. Validation data then fitted a score calibrator.
+
+| Task 2 setting | Baseline | Selected by train-only grouped CV |
+|---|---|---|
+| Logistic-regression C | 10 | 10 |
+| Embedding weight | 1.0 | 1.0 |
+| Character n-gram range | 2–4 | 3–5 |
+| Minimum document frequency | 3 | 3 |
+| Training CV macro-F1 | 84.21% | 84.71% |
+| Existing test-split accuracy | 84.76% | 84.25% |
+
+The selected setting improved the selection metric but did not generalize better to this test split: it made three additional errors out of 597. Your presentation's **85.9%** is a five-fold grouped-CV result using a different protocol, not this test-split measurement. These numbers do not establish an improvement over your original study. This document/UI update does not retrain or replace the classifier artifacts.
 
 ## Reproduce training
 

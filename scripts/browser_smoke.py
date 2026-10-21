@@ -18,19 +18,31 @@ async def main():
         await page.screenshot(path=str(out / "desktop.png"), full_page=True)
         await page.get_by_role("button", name="Try an example").click()
         passage = await page.locator("#text").input_value()
-        await page.get_by_role("button", name="Analyze passage").click()
+        await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#result:not([hidden])").wait_for(timeout=60000)
         result = await page.locator("#prediction").inner_text()
         assert result in ("Likely AI-generated", "Likely human-written")
         await page.screenshot(path=str(out / "result.png"), full_page=True)
         await page.get_by_role("tab", name="Upload a file").click()
         await page.locator("#file").set_input_files({"name": "passage.txt", "mimeType": "text/plain", "buffer": passage.encode()})
-        await page.get_by_role("button", name="Analyze passage").click()
+        await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#result:not([hidden])").wait_for(timeout=60000)
         assert await page.locator("#prediction").inner_text() == result
+        long_text = (passage + "\n") * 40
+        await page.locator("#file").set_input_files({"name": "long-notes.md", "mimeType": "text/markdown", "buffer": long_text.encode()})
+        await page.get_by_role("button", name="Analyze content").click()
+        await page.locator("#result:not([hidden])").wait_for(timeout=120000)
+        assert int(await page.locator("#result-segments").inner_text()) > 1
+        assert await page.locator(".segment").count() > 1
+        async with page.expect_download() as download_info:
+            await page.get_by_role("button", name="Export report").click()
+        download = await download_info.value
+        assert download.suggested_filename == "origin-analysis.json"
+        await page.screenshot(path=str(out / "document-result.png"), full_page=True)
+        assert "16 handcrafted" not in await page.locator("body").inner_text()
         await page.get_by_role("tab", name="Paste text").click()
         await page.locator("#text").fill("too short")
-        await page.get_by_role("button", name="Analyze passage").click()
+        await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#error:not([hidden])").wait_for()
         assert await page.locator("#result").is_hidden()
         await page.set_viewport_size({"width": 390, "height": 844})
@@ -38,7 +50,7 @@ async def main():
         await page.screenshot(path=str(out / "mobile.png"), full_page=True)
         assert not await page.evaluate("document.documentElement.scrollWidth > innerWidth")
         assert not errors, errors
-        print("Browser checks passed: real inference, upload parity, validation error, stale-result clearing, mobile overflow, no JavaScript errors.")
+        print("Browser checks passed: real inference, upload parity, validation error, stale-result clearing, long-document segmentation, report export, mobile overflow, no JavaScript errors.")
         await browser.close()
 
 
