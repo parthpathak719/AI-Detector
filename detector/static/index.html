@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore AI text detection and generator attribution for English, Indian languages, and code-mixed text.">
+  <title>Origin — A closer look at text</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="header"><a href="/" class="brand" aria-label="Origin home"><span class="brand-mark">o.</span> origin<span class="brand-dot">/</span></a><nav aria-label="Main navigation"><a href="#analyzer">Analyze text</a><a href="#method">Behind the model <span aria-hidden="true">↗︎</span></a></nav><span class="research-tag">RESEARCH EDITION <span>01</span></span></header>
+  <main>
+    <section class="intro"><div class="eyebrow"><span class="tiny-line"></span> TEXT DETECTION · FAMILY ATTRIBUTION</div><h1>Every text has a story.<br><em>Look a little closer.</em></h1><p>Explore whether a passage reads as human or AI-generated.<br class="desktop"> Go one step further to find its closest AI family.</p><div class="language-strip"><span>BUILT FOR</span> English <i>·</i> Hindi <i>·</i> Tamil <i>·</i> Kannada <i>·</i> Code-mixed text</div></section>
+    <section id="analyzer" class="workspace" aria-label="Text analyzer">
+      <div class="input-card">
+        <div class="card-top"><span class="section-index">01 / INPUT</span><span id="model-status" class="status" role="status">Connecting to model…</span></div>
+        <form id="analyze-form">
+          <div class="tabs" role="tablist" aria-label="Input method"><button type="button" id="paste-tab" role="tab" aria-selected="true" aria-controls="paste-panel">Paste text</button><button type="button" id="upload-tab" role="tab" aria-selected="false" aria-controls="upload-panel" tabindex="-1">Upload a file <span aria-hidden="true">↥</span></button></div>
+          <div id="paste-panel" role="tabpanel" aria-labelledby="paste-tab"><label class="sr-only" for="text">Passage to analyze</label><textarea id="text" maxlength="12000" placeholder="A paragraph, a review, a thought. Paste your text here…" spellcheck="false" aria-describedby="input-help"></textarea><div class="text-tools"><button id="example" type="button">Try an example <span aria-hidden="true">↗︎</span></button><span id="word-count">0 words</span><button id="clear" type="button">Clear</button></div></div>
+          <div id="upload-panel" role="tabpanel" aria-labelledby="upload-tab" hidden><label class="upload-zone" for="file"><span class="upload-icon" aria-hidden="true">↥</span><strong>Bring your own passage</strong><span>Choose a .txt or .md file</span><small>UTF-8 text · up to 48 KB</small><input id="file" type="file" accept=".txt,.md,text/plain,text/markdown"></label><p id="file-name" role="status">No file selected</p></div>
+          <div class="input-options"><div><label for="language">Language of your text</label><select id="language" name="language"><option value="en">English</option><option value="hi">Hindi</option><option value="ta">Tamil</option><option value="kn">Kannada</option><option value="hi_en">Hinglish · Hindi + English</option><option value="ta_en">Tanglish · Tamil + English</option><option value="kn_en">Kanglish · Kannada + English</option></select></div><span class="language-hint">Using Romanized text?<br>Choose its code-mixed language.</span></div>
+          <p id="input-help" class="helper">Use a short passage: 8–150 words, or 4+ for code-mixed text. The encoder also has a 128-token limit.</p>
+          <p id="error" class="error" role="alert" hidden></p><button id="submit" class="analyze-button" type="submit" disabled><span id="submit-label">Analyze passage</span><span id="submit-arrow" aria-hidden="true">↗︎</span></button>
+          <div class="privacy"><span aria-hidden="true">◇</span> Analyzed on this server. Your passage is not saved.</div>
+        </form>
+      </div>
+      <aside class="result-card" aria-labelledby="result-heading" aria-live="polite" aria-atomic="true"><div class="card-top"><span class="section-index">02 / INSIGHT</span><span class="small-pill">MuRIL + n-grams</span></div><div id="empty-result"><div class="orbit" aria-hidden="true"><span>o.</span></div><h2 id="result-heading">A little context,<br>a clearer picture.</h2><p>Your analysis will appear here.<br>Start with a short passage on the left.</p><div class="result-steps"><div><span>01</span> Human or AI signal</div><div><span>02</span> Closest AI family, if applicable</div><div><span>03</span> Model scores & limitations</div></div></div>
+        <div id="result" hidden><p id="result-kicker" class="eyebrow">DETECTION RESULT</p><h2 id="prediction"></h2><p id="prediction-note" class="result-note"></p><div class="score-heading"><span>Detector scores</span><span id="confidence"></span></div><div id="detection-bars"></div><section id="family-section" hidden><div class="divider"></div><p class="eyebrow">CLOSEST TRAINED FAMILY</p><h3 id="family-name"></h3><p id="family-note" class="result-note"></p><div id="family-bars"></div></section><div class="divider"></div><ul id="warnings" class="warnings"></ul><div id="result-meta" class="result-meta"></div></div>
+      </aside>
+    </section>
+    <section id="method" class="method"><div class="method-heading"><span class="section-index">THE METHOD</span><h2>Language-aware.<br><em>Evidence-led.</em></h2><p>A research tool for exploring patterns,<br>not a verdict on who wrote something.</p></div><div class="method-details"><article><span>01</span><div><h3>Meaning meets character patterns</h3><p>Frozen MuRIL embeddings capture context across languages. Character n-grams capture local spelling patterns. The 16 handcrafted features are excluded.</p></div></article><article><span>02</span><div><h3>Two questions, separate predictions</h3><p>First: human or AI? Then, for AI predictions: which of Gemini, Muse or Sarvam is the closest match? Other generators may resemble these families.</p></div></article><article><span>03</span><div><h3>Small datasets. Clear boundaries.</h3><p>Tuning keeps related source texts together. Scores are calibrated on validation data, but can still be wrong on unfamiliar domains, languages or edited text. Don’t use this as the sole basis for an academic or professional decision.</p></div></article></div></section>
+  </main><footer><a class="brand footer-brand" href="/">origin<span class="brand-dot">/</span></a><span>AI Origin Detection & Attribution · Research prototype</span><a href="#analyzer">Back to analysis ↑</a></footer>
+</body></html>
