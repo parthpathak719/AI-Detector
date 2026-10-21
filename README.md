@@ -6,7 +6,23 @@ Supports English, Hindi, Tamil, Kannada, Hinglish, Tanglish and Kanglish. Choose
 
 ## Run locally
 
-Tested with Python 3.12 on Linux, CPU only. Allow about 2 GB disk for dependencies/encoder and several GB RAM. No API keys, database, paid APIs or GPU required. The first setup downloads the public MuRIL encoder (~950 MB).
+Use **Python 3.12 (64-bit)**. Setup supports native Windows and Linux; application tests have been run on Linux, CPU only. Native Windows execution has not yet been verified on a Windows machine. Allow several GB of disk and RAM for dependencies and the encoder. No API keys, database, paid APIs or GPU required. The first setup downloads the public MuRIL encoder (~950 MB).
+
+### Windows — PowerShell
+
+Install Python 3.12 from python.org if `py -3.12 --version` cannot find it. From your existing checkout:
+
+```powershell
+git pull
+py -3.12 scripts/setup.py
+.\.venv\Scripts\python.exe -m uvicorn detector.app:app --host 127.0.0.1 --port 8000
+```
+
+No Bash, WSL, virtual-environment activation or PowerShell execution-policy change is needed. Setup creates a dedicated `.venv`; it does not install packages into an active Conda environment such as `(tf)`. Paths containing spaces are supported. If you already have a Python 3.12 Conda environment but no `py` launcher, use `python scripts/setup.py` after confirming `python --version` reports 3.12.
+
+Do not share `.venv` between WSL and Windows. If setup reports an incompatible existing environment, rename that directory and retry; setup will not delete it. The WSL `Failed to translate` messages concern old Windows PATH entries and are unrelated to the native setup. A Bash `pipefail` error can result from CRLF line endings; `.gitattributes` now keeps shell scripts in LF format.
+
+### Linux
 
 ```bash
 git clone https://github.com/parthpathak719/AI-Detector.git
@@ -70,6 +86,8 @@ curl --fail http://127.0.0.1:8000/api/analyze \
 ```
 
 Integration tests use the **real encoder and trained classifiers**. Unit tests additionally exercise conditional attribution and uncertain results using explicitly mocked scores. Browser verification covers desktop/mobile layouts, pasting, upload parity, error states, and console errors.
+
+On Windows, replace `.venv/bin/python` in training and verification commands with `.\.venv\Scripts\python.exe`. Run API checks with `curl.exe` rather than PowerShell's `curl` alias.
 
 ## Layout
 
