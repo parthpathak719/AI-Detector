@@ -19,6 +19,7 @@ class MuRIL:
         self.tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True)
         self.model = AutoModel.from_pretrained(path, local_files_only=True).eval()
         self.task_layers = {}
+        self.task_models = {}
 
     def configure_task(self, task, layer_path):
         """Load a trusted, checksum-verified task-specific final transformer block."""
@@ -26,6 +27,14 @@ class MuRIL:
         block = copy.deepcopy(self.model.encoder.layer[-1])
         block.load_state_dict(load_file(str(layer_path)), strict=True)
         self.task_layers[task] = block.eval()
+
+    def configure_full_task(self, task, model_path):
+        """Load all fine-tuned embeddings/blocks from a verified local checkpoint."""
+        from safetensors.torch import load_file
+        from transformers import AutoModel
+        model = AutoModel.from_config(self.model.config, add_pooling_layer=False)
+        model.load_state_dict(load_file(str(model_path)), strict=True)
+        self.task_models[task] = model.eval()
 
     def token_count(self, text):
         return len(self.tokenizer.encode(text, add_special_tokens=True, truncation=False))
@@ -60,7 +69,8 @@ class MuRIL:
                                      truncation=True, max_length=128, return_tensors="pt")
             with self.torch.inference_mode():
                 block = self.task_layers.get(task)
-                output = self.model(**encoded, output_hidden_states=block is not None)
+                model = self.task_models.get(task, self.model)
+                output = model(**encoded, output_hidden_states=block is not None)
                 h = output.last_hidden_state
                 if block is not None:
                     hidden = output.hidden_states[-2]
