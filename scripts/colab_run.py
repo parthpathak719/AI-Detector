@@ -14,6 +14,8 @@ import time
 
 import numpy as np
 import torch
+import scipy
+import sklearn
 
 from scripts import full_finetune as experiment
 from scripts.train import TASKS, load_task
@@ -113,6 +115,7 @@ def main():
     torch.backends.cudnn.allow_tf32 = False
     environment = dict(started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                        python=sys.version, torch=torch.__version__, cuda=torch.version.cuda,
+                       numpy=np.__version__, scipy=scipy.__version__, sklearn=sklearn.__version__,
                        gpu=torch.cuda.get_device_name(0), total_gpu_memory=torch.cuda.get_device_properties(0).total_memory,
                        run_root=str(root), tf32=False)
     with (root / 'runtime_history.jsonl').open('a', encoding='utf-8') as history:
