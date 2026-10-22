@@ -1,0 +1,8 @@
+[
+  {
+    "previous_script_sha256": "8d1ed11c754c727b09f4070b3175d131f78a70b15ae1e80879f1dc6b6b477d94",
+    "corrected_script_sha256": "fb184deb5e3dea26da467a5708701ea52166f1cc4c997e4c57647e2992205a72",
+    "reason": "Dataset labels are int32; cross-entropy requires int64. Explicit torch.long added before any full-encoder update completed. Frozen folds are unaffected.",
+    "full_folds_completed": 0
+  }
+]
