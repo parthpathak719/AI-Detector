@@ -67,3 +67,12 @@ def test_export_requires_complete_run_and_excludes_private_examples(tmp_path):
     (artifacts / f'{TASKS[0]}.joblib').write_bytes(b'corrupted')
     with pytest.raises(ValueError, match='checksum'):
         export_run(tmp_path)
+
+
+def test_colab_runner_requires_gpu(tmp_path, monkeypatch):
+    import scripts.colab_run as runner
+    monkeypatch.setattr(runner.torch.cuda, 'is_available', lambda: False)
+    monkeypatch.setattr(runner.sys, 'argv', ['colab_run', '--run-root', str(tmp_path / 'run')])
+    with pytest.raises(SystemExit, match='No GPU is attached'):
+        runner.main()
+    assert not (tmp_path / 'run').exists()
