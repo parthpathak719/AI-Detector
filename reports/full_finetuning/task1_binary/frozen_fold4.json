@@ -1,0 +1,176 @@
+{
+  "task": "task1_binary",
+  "fold": 4,
+  "variant": "frozen",
+  "candidates": [
+    {
+      "candidate": 0,
+      "params": {
+        "C": 10.0,
+        "weight": 1.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9176659406167602,
+      "accuracy": 0.9177489177489178
+    },
+    {
+      "candidate": 1,
+      "params": {
+        "C": 1.0,
+        "weight": 0.5,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9047045587132261,
+      "accuracy": 0.9047619047619048
+    },
+    {
+      "candidate": 2,
+      "params": {
+        "C": 1.0,
+        "weight": 1.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9090295358649789,
+      "accuracy": 0.9090909090909091
+    },
+    {
+      "candidate": 3,
+      "params": {
+        "C": 1.0,
+        "weight": 2.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9162555212934411,
+      "accuracy": 0.9163059163059163
+    },
+    {
+      "candidate": 4,
+      "params": {
+        "C": 5.0,
+        "weight": 0.5,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9118712122633543,
+      "accuracy": 0.911976911976912
+    },
+    {
+      "candidate": 5,
+      "params": {
+        "C": 5.0,
+        "weight": 1.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9162289915966386,
+      "accuracy": 0.9163059163059163
+    },
+    {
+      "candidate": 6,
+      "params": {
+        "C": 5.0,
+        "weight": 2.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9205687622564598,
+      "accuracy": 0.9206349206349206
+    },
+    {
+      "candidate": 7,
+      "params": {
+        "C": 20.0,
+        "weight": 0.5,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9162136246143584,
+      "accuracy": 0.9163059163059163
+    },
+    {
+      "candidate": 8,
+      "params": {
+        "C": 20.0,
+        "weight": 1.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9205548549810845,
+      "accuracy": 0.9206349206349206
+    },
+    {
+      "candidate": 9,
+      "params": {
+        "C": 20.0,
+        "weight": 2.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9162555212934411,
+      "accuracy": 0.9163059163059163
+    },
+    {
+      "candidate": 10,
+      "params": {
+        "C": 10.0,
+        "weight": 1.0,
+        "ngram_range": [
+          3,
+          5
+        ],
+        "min_df": 3
+      },
+      "macro_f1": 0.9248949579831933,
+      "accuracy": 0.924963924963925
+    },
+    {
+      "candidate": 11,
+      "params": {
+        "C": 10.0,
+        "weight": 1.0,
+        "ngram_range": [
+          2,
+          4
+        ],
+        "min_df": 2
+      },
+      "macro_f1": 0.9191176470588235,
+      "accuracy": 0.9191919191919192
+    }
+  ],
+  "training": null
+}

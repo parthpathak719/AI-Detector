@@ -175,7 +175,7 @@ def train_encoder(tokenizer, data, fit, stop, learning_rate, folder, tag, *, epo
                 group['lr'] = group['base_lr'] * factor
             optimizer.zero_grad(set_to_none=True)
             emb = pooled(model, token_batch(tokenizer, data['text'], indices))
-            loss = torch.nn.functional.cross_entropy(head(emb), torch.tensor(data['y'][indices], device=DEVICE),
+            loss = torch.nn.functional.cross_entropy(head(emb), torch.tensor(data['y'][indices], device=DEVICE, dtype=torch.long),
                                                      label_smoothing=.05)
             if not torch.isfinite(loss):
                 raise RuntimeError('Nonfinite full fine-tuning loss')

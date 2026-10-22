@@ -74,7 +74,7 @@ def test_epoch_checkpoint_resumes_after_interruption(tmp_path, monkeypatch):
     tokenizer = BertTokenizer(vocab_file=str(vocab))
     rng = np.random.default_rng(1)
     data = dict(text=np.array(['one two three'] * 12), emb=rng.normal(size=(12, 768)),
-                y=np.tile([0, 1, 2], 4), classes=np.array(['a', 'b', 'c']))
+                y=np.tile([0, 1, 2], 4).astype(np.int32), classes=np.array(['a', 'b', 'c']))
     real_checkpoint = experiment.checkpoint
     def interrupt_after_checkpoint(*args, **kwargs):
         real_checkpoint(*args, **kwargs)
