@@ -1,4 +1,4 @@
-"""Frozen MuRIL with the original study's masked mean pooling and token limit."""
+"""Pinned MuRIL with optional task-specific fine-tuned final transformer blocks."""
 import os
 import copy
 from pathlib import Path

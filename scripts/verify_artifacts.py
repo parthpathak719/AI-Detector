@@ -16,4 +16,4 @@ def verify(root):
 
 if __name__ == "__main__":
     verify(Path(__file__).resolve().parents[1] / "artifacts")
-    print("All three trained artifact checksums verified.")
+    print("All model artifact checksums verified.")

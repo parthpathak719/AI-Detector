@@ -56,6 +56,18 @@ The dark interface supports drag-and-drop upload, a visible elapsed timer during
 
 The production pipeline uses **frozen 768-dimensional MuRIL masked-mean embeddings + character `char_wb` TF-IDF + logistic regression**. It excludes the 16 handcrafted features. Normalization follows the study's strict Unicode cleaning; label-dependent AI sentence trimming remains a training-data operation and is never applied at inference.
 
+We also fine-tuned **MuRIL's final transformer block (7,087,872 parameters)**, with the embeddings and first 11 blocks frozen. One and two epochs were compared against the frozen encoder on the same three source-grouped training folds. **The frozen encoder won all three comparisons**, so all serving models remain frozen MuRIL + character n-grams.
+
+| Task | Frozen CV macro-F1 | Best fine-tuned CV macro-F1 | Selected test accuracy |
+|---|---:|---:|---:|
+| Monolingual human vs AI | 92.23% | 92.06% | 93.04% |
+| Gemini / Muse / Sarvam | 84.71% | 84.62% | 84.25% |
+| Code-mixed human vs AI | 95.37% | 95.29% | 95.35% |
+
+Selection used **training-only grouped CV**, not test scores. This partial fine-tune did not demonstrate an improvement; it does not establish that every possible full-encoder fine-tune would fail. See [the fine-tuning experiment](docs/finetuning-results.md) and [complete fold results](reports/finetuning/).
+
+For comparison, the earlier **classifier-only** search produced these test results (these are historical, not a new fine-tuned-encoder result):
+
 | Task | Test examples | Tuned accuracy | Untuned baseline accuracy | Tuned macro-F1 |
 |---|---:|---:|---:|---:|
 | Human vs AI, monolingual | 718 | 93.04% | 93.31% | 93.04% |
@@ -66,9 +78,9 @@ These are **separate task metrics on the existing strict-cleaned test splits**, 
 
 Read [the model card](MODEL_CARD.md) for methodology, limitations and the cross-task split issue. Detailed search traces, confusion matrices, calibration metrics and per-language results are in [reports/](reports/).
 
-### What was tuned, and why attribution is below the presentation's 85.9%
+### Why attribution differs from the presentation's 85.9%
 
-MuRIL's weights were **not fine-tuned**. A 12-candidate search tuned classifier `C`, embedding weight, character n-gram range and `min_df`. Validation data then fitted a score calibrator.
+In the **first application experiment**, MuRIL's weights were not fine-tuned. A 12-candidate search tuned classifier `C`, embedding weight, character n-gram range and `min_df`. Validation data then fitted a score calibrator.
 
 | Task 2 setting | Baseline | Selected by train-only grouped CV |
 |---|---|---|
@@ -79,7 +91,7 @@ MuRIL's weights were **not fine-tuned**. A 12-candidate search tuned classifier 
 | Training CV macro-F1 | 84.21% | 84.71% |
 | Existing test-split accuracy | 84.76% | 84.25% |
 
-The selected setting improved the selection metric but did not generalize better to this test split: it made three additional errors out of 597. Your presentation's **85.9%** is a five-fold grouped-CV result using a different protocol, not this test-split measurement. These numbers do not establish an improvement over your original study. This document/UI update does not retrain or replace the classifier artifacts.
+The selected setting improved the selection metric but did not generalize better to this test split: it made three additional errors out of 597. Your presentation's **85.9%** is a five-fold grouped-CV result using a different protocol, not this test-split measurement. These numbers do not establish an improvement over your original study. The subsequent final-block fine-tuning experiment is reported separately above; it retained the frozen encoder because the fine-tuned candidates did not improve the selection metric.
 
 ## Reproduce training
 
@@ -94,7 +106,15 @@ The datasets and cached embeddings remain local and are excluded from Git. Use y
 
 Training uses 12 predefined configurations with three-fold **StratifiedGroupKFold on training data only**. The TF-IDF vocabulary and embedding scaler are refitted inside each fold. Source/paired IDs remain together. The winner is trained on the training split; logistic score calibration uses only validation data. The original test split is used only after selection. Every run checks label/ID alignment, finite embeddings, exact duplicate text and source-group separation within each task. A dataset-plus-embedding SHA-256 is recorded in each report.
 
-MuRIL is deliberately frozen. With this dataset size, a CPU-only setup, and no fresh validation corpus, fine-tuning the entire encoder is not justified as an assumed improvement. Test it as a separate controlled experiment, with nested grouped validation and the same test boundary, preferably on GPU.
+The commands above reproduce the earlier classifier-only search. To reproduce the **new MuRIL fine-tuning comparison and current model selection**, run:
+
+```bash
+.venv/bin/python -m scripts.finetune
+.venv/bin/python -m scripts.summarize_finetuning
+.venv/bin/python -m scripts.check_serving
+```
+
+This updates the final MuRIL block and a temporary supervised head within each CV training fold, while caching frozen lower-layer outputs. It selects the best frozen/fine-tuned hybrid by mean macro-F1, refits on train, calibrates on val and only then reports test performance. It took about 24 minutes on the cloud CPU and uses several GB of cache storage; runtime varies by machine. Earlier serving artifacts are preserved in `.cache/finetune/previous_artifacts/`. Full-encoder fine-tuning was not attempted. No training is needed just to run the application.
 
 ## Verify
 

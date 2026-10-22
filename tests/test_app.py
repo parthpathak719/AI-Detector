@@ -110,3 +110,18 @@ def test_real_tokenizer_chunking_has_complete_unicode_coverage(client):
     assert len(chunks) > 1
     assert ' '.join(chunks) == cleaned
     assert all(encoder.token_count(c) <= 128 for c in chunks)
+
+
+def test_encoder_variant_round_trip_matches_frozen_encoder(client, tmp_path):
+    import numpy as np
+    from safetensors.torch import save_file
+    encoder = app.state.detector.encoder
+    path = tmp_path / 'last_layer.safetensors'
+    save_file({k: v.detach().cpu().contiguous() for k, v in encoder.model.encoder.layer[-1].state_dict().items()}, str(path))
+    expected = encoder.encode([PASSAGE])
+    try:
+        encoder.configure_task('round_trip_test', path)
+        actual = encoder.encode([PASSAGE], task='round_trip_test')
+        np.testing.assert_allclose(actual, expected, atol=2e-6, rtol=2e-5)
+    finally:
+        encoder.task_layers.pop('round_trip_test', None)

@@ -10,11 +10,11 @@ User-supplied strict-cleaned data: 4,902 monolingual detection examples, 4,137 a
 
 Encoder: `google/muril-base-cased`, revision `afd9f36c7923d54e97903922ff1b260d091d202f`, frozen, masked mean pooling including attended special tokens, max length 128, 768 dimensions. Fresh vectors were checked against cached vectors for one training example of each language in each task. The maximum absolute error was below 1e-6. All training rows were unchanged by the inference cleaner.
 
-Classifier: character word-boundary TF-IDF (up to 150,000 features), concatenated with standardized embeddings weighted by `weight / sqrt(768)`, then logistic regression. No 16-feature block. The 12-candidate search varies C, dense weight, n-gram range and minimum document frequency. See the JSON reports for the full trace.
+Classifier: character word-boundary TF-IDF (up to 150,000 features), concatenated with standardized embeddings weighted by `weight / sqrt(768)`, then logistic regression. No 16-feature block. The initial 12-candidate classifier search varied C, dense weight, n-gram range and minimum document frequency. A subsequent experiment compared three fixed hybrid settings with frozen, one-epoch and two-epoch final-block fine-tuned MuRIL representations. All three tasks selected frozen MuRIL. See the JSON reports for both traces.
 
 ## Evaluation boundaries
 
-1. Tune on three grouped folds inside **train only**, maximizing mean macro-F1. Fit TF-IDF and scaling separately in each fold.
+1. Compare frozen and final-block fine-tuned MuRIL on three grouped folds inside **train only**, maximizing mean macro-F1. Fit the fine-tuned block, supervised head, TF-IDF and scaling separately on each fold's training portion. Ties favor fewer fine-tuning epochs.
 2. Fit the selected classifier on train only. Fit regularized logistic calibration on **val only**.
 3. Evaluate once on the existing test split, and report the fixed baseline alongside it. Do not select the baseline or retune after seeing test results.
 
@@ -22,7 +22,19 @@ Within each task, train/validation/test source groups do not overlap. However, t
 
 The original study selected hyperparameters on validation before pooling train/val/test for its five-fold CV. That is not fully nested CV, so its CV headline numbers are not directly comparable with this application's train-only tuning and held-out-split results. Furthermore, the original test data has already been analyzed historically; new independently collected data would be a stronger final assessment.
 
-## Findings
+## Final-block fine-tuning findings
+
+The experiment updated 7,087,872 MuRIL parameters in encoder layer 11, plus a temporary linear classification head. Embeddings and layers 0–10 stayed frozen. It used AdamW (encoder LR 1e-5, head LR 1e-4), batch size 16, weight decay 0.01 and gradient clipping at 1.0, for one/two epochs. Frozen lower-layer states were cached in float32 and their parity verified. This is actual partial encoder fine-tuning, not just tuning logistic regression; it is not a full-encoder fine-tune.
+
+| Task | Best frozen selection CV macro-F1 | Best fine-tuned selection CV macro-F1 | Serving choice |
+|---|---:|---:|---|
+| Monolingual detection | 92.23% | 92.06% | Frozen |
+| Attribution | 84.71% | 84.62% | Frozen |
+| Code-mixed detection | 95.37% | 95.29% | Frozen |
+
+The fine-tuned candidates did not improve the selection metric. These small differences do not establish statistical superiority. The production classifiers were refitted with the CV-selected settings, calibrated on the original validation split and evaluated on test only afterward. Current test accuracies remain 93.04%, 84.25% and 95.35%. Full results and the reproduction protocol are in [docs/finetuning-results.md](docs/finetuning-results.md).
+
+## Earlier classifier-only findings
 
 - Tuned test accuracy: Task 1 **93.04%**, Task 2 **84.25%**, Task 3 **95.35%**.
 - Baseline: **93.31%**, **84.76%**, **94.96%**, respectively.
@@ -42,7 +54,7 @@ The original study selected hyperparameters on validation before pooling train/v
 - The original feature extractor truncates at 128 tokens. Reported test metrics use those original cached features, including any truncated examples. The app now partitions long text into non-overlapping windows of at most 128 tokens, without discarding words. The task metrics do not measure this document aggregation workflow.
 - Training-only AI sentence trimming and label-balanced length filtering cannot be replicated on unknown input. Inference applies only label-independent strict cleaning.
 - Texts below 8 words have no supported attribution result even when the code-mixed detector accepts them. Long documents are supported through segment aggregation, and searchable PDF/DOCX/Word 97–2003 DOC text can be extracted. Mixed-authorship accuracy, OCR, and token-level attribution are not supported or validated.
-- Full MuRIL fine-tuning was not performed. The present experiment tunes only the hybrid classifier and its feature settings.
+- Full-encoder MuRIL fine-tuning was not performed. Final-block fine-tuning was evaluated but was not selected for serving; all deployed encoders remain frozen.
 
 ## Document aggregation (v2)
 
@@ -52,4 +64,4 @@ Limits: 100,000 raw/extracted characters, 20,000 cleaned words, 10 MB upload, 30
 
 ## Next useful experiment
 
-Create one shared source-group partition across tasks, reserve a new evaluation corpus, evaluate the complete cascade and unseen-generator detection, then compare the frozen hybrid with a carefully regularized MuRIL fine-tune. Expand Hindi attribution and Tanglish/Kanglish human data before enlarging the hyperparameter search.
+Create one shared source-group partition across tasks, reserve a new evaluation corpus, evaluate the complete cascade and unseen-generator detection, then evaluate broader encoder fine-tuning against the frozen hybrid using a new, fixed evaluation protocol. Expand Hindi attribution and Tanglish/Kanglish human data before enlarging the hyperparameter search.
