@@ -1,0 +1,34 @@
+{
+  "task": "task2_attribution",
+  "fold": 0,
+  "learning_rate": 2e-06,
+  "scope": "First epoch only; not a completed CV result or serving-model selection",
+  "strict_full_checkpoint_load_passed": true,
+  "trainable_encoder_parameters": 236965632,
+  "parameter_probe_max_absolute_change": {
+    "embeddings.word_embeddings.weight": 5.354732275009155e-05,
+    "encoder.layer.0.attention.self.query.weight": 6.292760372161865e-05,
+    "encoder.layer.1.attention.self.query.weight": 6.267055869102478e-05,
+    "encoder.layer.2.attention.self.query.weight": 6.60233199596405e-05,
+    "encoder.layer.3.attention.self.query.weight": 6.663426756858826e-05,
+    "encoder.layer.4.attention.self.query.weight": 7.013976573944092e-05,
+    "encoder.layer.5.attention.self.query.weight": 6.595626473426819e-05,
+    "encoder.layer.6.attention.self.query.weight": 6.0752034187316895e-05,
+    "encoder.layer.7.attention.self.query.weight": 6.477744318544865e-05,
+    "encoder.layer.8.attention.self.query.weight": 5.977228283882141e-05,
+    "encoder.layer.9.attention.self.query.weight": 5.9977173805236816e-05,
+    "encoder.layer.10.attention.self.query.weight": 6.748177111148834e-05,
+    "encoder.layer.11.attention.self.query.weight": 7.264316082000732e-05
+  },
+  "history_at_check": [
+    {
+      "epoch": 1,
+      "loss": 0.4567809841990406,
+      "inner_stop_macro_f1": 0.7946181848112742,
+      "seconds": 472.75
+    }
+  ],
+  "optimizer_checkpoint_bytes": 2843852631,
+  "optimizer_checkpoint_load_passed": true,
+  "optimizer_parameter_states": 199
+}
