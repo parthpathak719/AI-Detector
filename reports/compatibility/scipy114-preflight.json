@@ -1,0 +1,22 @@
+{
+  "numpy": "2.2.6",
+  "scipy": "1.14.1",
+  "sklearn": "1.6.1",
+  "torch": "2.6.0+cpu",
+  "tasks": {
+    "task1_binary": {
+      "head_initializations_passed": 5,
+      "hybrid_fit_and_calibration_passed": true
+    },
+    "task2_attribution": {
+      "head_initializations_passed": 5,
+      "hybrid_fit_and_calibration_passed": true
+    },
+    "task3_codemix": {
+      "head_initializations_passed": 5,
+      "hybrid_fit_and_calibration_passed": true
+    }
+  },
+  "scope": "Local CPU verification of the SciPy compatibility workaround; Colab GPU retry still required.",
+  "related_tests_passed": 8
+}
