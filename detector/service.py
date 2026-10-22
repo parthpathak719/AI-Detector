@@ -18,6 +18,13 @@ class Detector:
         self.encoder = MuRIL()
         for task, bundle in self.artifacts.items():
             layer = bundle["metadata"].get("encoder", {}).get("fine_tuned_last_layer")
+            full = bundle["metadata"].get("encoder", {}).get("fine_tuned_full")
+            if layer and full:
+                raise ValueError("Conflicting encoder variants")
+            if full:
+                if Path(full).name != full:
+                    raise ValueError("Invalid encoder artifact path")
+                self.encoder.configure_full_task(task, artifact_dir / full)
             if layer:
                 if Path(layer).name != layer:
                     raise ValueError("Invalid encoder artifact path")
@@ -51,8 +58,10 @@ class Detector:
                 warnings.append("No AI-leaning segment contains the 8 words needed for family attribution.")
             else:
                 f = self.artifacts["task2_attribution"]
-                detection_layer = bundle["metadata"].get("encoder", {}).get("fine_tuned_last_layer")
-                attribution_layer = f["metadata"].get("encoder", {}).get("fine_tuned_last_layer")
+                detection_encoder = bundle["metadata"].get("encoder", {})
+                attribution_encoder = f["metadata"].get("encoder", {})
+                detection_layer = (detection_encoder.get("fine_tuned_last_layer"), detection_encoder.get("fine_tuned_full"))
+                attribution_layer = (attribution_encoder.get("fine_tuned_last_layer"), attribution_encoder.get("fine_tuned_full"))
                 family_embeddings = embeddings[eligible]
                 if detection_layer != attribution_layer:
                     family_embeddings = self.encoder.encode([chunks[i] for i in eligible], task="task2_attribution")
@@ -73,4 +82,4 @@ class Detector:
                               "token_count": tokens[i], "label": labels[i],
                               "ai_score": float(chunk_probs[i, ai_index])} for i, c in enumerate(chunks)],
                 "warnings": warnings, "model_version": "muril-char / document-v2",
-                "encoder_variant": "fine-tuned final block" if bundle["metadata"].get("encoder", {}).get("fine_tuned_last_layer") else "frozen"}
+                "encoder_variant": "fully fine-tuned" if bundle["metadata"].get("encoder", {}).get("fine_tuned_full") else "fine-tuned final block" if bundle["metadata"].get("encoder", {}).get("fine_tuned_last_layer") else "frozen"}

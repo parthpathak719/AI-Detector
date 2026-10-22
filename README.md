@@ -93,6 +93,10 @@ In the **first application experiment**, MuRIL's weights were not fine-tuned. A 
 
 The selected setting improved the selection metric but did not generalize better to this test split: it made three additional errors out of 597. Your presentation's **85.9%** is a five-fold grouped-CV result using a different protocol, not this test-split measurement. These numbers do not establish an improvement over your original study. The subsequent final-block fine-tuning experiment is reported separately above; it retained the frozen encoder because the fine-tuned candidates did not improve the selection metric.
 
+## Full-encoder experiment in progress
+
+A new all-layer MuRIL experiment uses **five grouped folds**, three encoder learning rates, early stopping inside each training fold, and twelve hybrid configurations. It is separate from the completed partial fine-tuning results above. **No completed full-fine-tuning gain is claimed yet.** See [the protocol, progress commands, and resume instructions](docs/full-finetuning.md). Production models stay unchanged while it runs.
+
 ## Reproduce training
 
 The datasets and cached embeddings remain local and are excluded from Git. Use your original `ProjectPhase_Progress 2.zip`:
