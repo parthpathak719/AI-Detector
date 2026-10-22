@@ -11,6 +11,7 @@ function clearResult() {
 }
 function setMode(next) {
   if (working) return;
+  if (mode !== next) clearResult();
   mode = next;
   for (const key of ['paste', 'upload']) {
     $(`${key}-tab`).setAttribute('aria-selected', String(key === mode));
@@ -59,7 +60,7 @@ for (const type of ['dragleave', 'drop']) $('drop-zone').addEventListener(type, 
 });
 $('drop-zone').addEventListener('drop', e => {
   if (working) return;
-  if (e.dataTransfer.files.length !== 1) return showError('Choose one document at a time.');
+  if (e.dataTransfer.files.length !== 1) { chooseFile(null); return showError('Choose one document at a time.'); }
   $('file').value = ''; chooseFile(e.dataTransfer.files[0]);
 });
 function bars(target, scores) {

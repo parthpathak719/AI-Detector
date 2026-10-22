@@ -1,0 +1,20 @@
+{
+  "task1_binary": {
+    "examples": 4,
+    "encoder_variant": "frozen",
+    "max_embedding_absolute_error": 5.960464477539063e-08,
+    "max_score_absolute_error": 1.4668068180068161e-06
+  },
+  "task2_attribution": {
+    "examples": 7,
+    "encoder_variant": "frozen",
+    "max_embedding_absolute_error": 5.960464477539063e-08,
+    "max_score_absolute_error": 7.672162811722671e-07
+  },
+  "task3_codemix": {
+    "examples": 3,
+    "encoder_variant": "frozen",
+    "max_embedding_absolute_error": 5.960464477539063e-08,
+    "max_score_absolute_error": 5.46059486516981e-09
+  }
+}

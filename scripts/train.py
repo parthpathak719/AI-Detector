@@ -26,7 +26,7 @@ def load_task(root, task):
     for split in ("train", "val", "test"):
         path = root / f"{task}_{split}.jsonl"
         digest.update(path.read_bytes())
-        rows = [json.loads(s) for s in path.read_text().splitlines() if s.strip()]
+        rows = [json.loads(s) for s in path.read_text(encoding="utf-8").splitlines() if s.strip()]
         feature_path = root / "features" / f"{task}_{split}.npz"
         digest.update(feature_path.read_bytes())
         with np.load(feature_path, allow_pickle=False) as z:

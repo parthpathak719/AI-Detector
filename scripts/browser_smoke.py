@@ -29,7 +29,12 @@ async def main():
         await page.locator("#result:not([hidden])").wait_for(timeout=60000)
         assert await page.locator("#prediction").inner_text() == result
         long_text = (passage + "\n") * 40
-        await page.locator("#file").set_input_files({"name": "long-notes.md", "mimeType": "text/markdown", "buffer": long_text.encode()})
+        await page.evaluate("""text => {
+            const transfer = new DataTransfer();
+            transfer.items.add(new File([text], 'long-notes.md', {type: 'text/markdown'}));
+            document.getElementById('drop-zone').dispatchEvent(new DragEvent('drop', {bubbles:true, cancelable:true, dataTransfer:transfer}));
+        }""", long_text)
+        assert 'long-notes.md' in await page.locator('#file-name').inner_text()
         await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#result:not([hidden])").wait_for(timeout=120000)
         assert int(await page.locator("#result-segments").inner_text()) > 1

@@ -11,7 +11,7 @@ if __name__ == "__main__":
     report = {"encoder": MODEL_ID, "revision": REVISION, "tasks": {}}
     for task in TASKS:
         base = Path("data/clean_strict")
-        rows = [json.loads(line) for line in (base / f"{task}_train.jsonl").read_text().splitlines()]
+        rows = [json.loads(line) for line in (base / f"{task}_train.jsonl").read_text(encoding="utf-8").splitlines()]
         with np.load(base / "features" / f"{task}_train.npz", allow_pickle=False) as z:
             ref = z["emb"]
         indexes = [next(i for i, r in enumerate(rows) if r["language"] == lang) for lang in sorted({r["language"] for r in rows})]
