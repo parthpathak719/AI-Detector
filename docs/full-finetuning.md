@@ -17,6 +17,18 @@ The run was launched on 22 October 2026 on the cloud CPU. The committed protocol
 - If a full encoder wins, refit it on the complete original training split for the median selected best epoch count across its five folds. Calibrate the hybrid only on the original validation split. Evaluate the existing test split after saving the selection decision; do not change selection based on test accuracy.
 - The same source-group IDs supplied by the original dataset define independence. They do not guarantee that every semantic near-duplicate or generator/topic dependence has been identified. Existing test data has been examined historically; new independent evaluation remains desirable. Task-level results do not measure the long-document cascade.
 
+## Run on a Colab GPU
+
+[Open the prepared notebook](https://colab.research.google.com/github/parthpathak719/AI-Detector/blob/main/notebooks/Full_MuRIL_Finetuning.ipynb), select **Runtime → Change runtime type → T4 GPU**, then **Run all** and authorize Google Drive. A connected Google account and an available Colab GPU are required; the cloud coding environment cannot allocate a GPU through the notebook link alone.
+
+The notebook pins a source commit and installs CUDA-enabled PyTorch 2.6 in a separate virtual environment. It imports the original supplied archive, verifies/reuses all 15 frozen baseline folds, and runs the full GPU search independently of the ongoing CPU fine-tuning run. Dataset hashes, fold indices, candidate settings, and saved prediction metrics are checked before baseline reuse. CPU fine-tuned checkpoints are not mixed with GPU runs. No completed GPU result is claimed before execution.
+
+Checkpoints, reports and logs persist in `MyDrive/AI-Detector/full-muril-gpu-v1`. Allow approximately 15 GB free in Drive. After a Colab disconnect, reconnect a GPU and run all cells again using the same run folder; at most the unfinished epoch must replay. Use only one Colab runtime per run folder. GPU availability/session duration are controlled by Colab; the notebook does not bypass their limits.
+
+Once all comparisons, refits and application-loader parity checks pass, the notebook exports `results.zip` and `selected_models.zip` to Drive. The small results ZIP can be shared for review. The model ZIP contains the complete selected `artifacts/` directory, including full encoder checkpoints only where selected, and excludes private parity passages and optimizer states. Back up your local artifacts, extract the model ZIP, verify checksums and restart the app using the notebook's Windows instructions.
+
+The Colab launch requires user authentication. The CPU run can continue/resume here while the notebook awaits a GPU session. Workflow tests and baseline provenance checks run in this environment; actual CUDA execution requires Colab and has not been verified here.
+
 ## Run and resume
 
 From the repository root, with the supplied strict-cleaned datasets and pinned MuRIL download already available:
