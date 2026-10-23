@@ -23,7 +23,7 @@ The run was launched on 22 October 2026 on the cloud CPU. The committed protocol
 
 The notebook pins a source commit and uses uv to provision Python 3.12 independently of Colab’s system Python/ensurepip, then installs CUDA-enabled PyTorch 2.6 in a separate virtual environment. It imports the original supplied archive, recomputes all 15 frozen baseline folds under the same SciPy version, and runs the full GPU search independently of the ongoing CPU fine-tuning run. The notebook uses SciPy 1.14.1 as a compatibility workaround for the observed SciPy 1.15.3 L-BFGS segmentation fault during head initialization. A real-data optimizer preflight runs first. All 15 head initializations and three hybrid-fit/calibration checks passed locally; GPU execution of the workaround still requires Colab. CPU fine-tuned checkpoints are not mixed with GPU runs. No completed GPU result is claimed before execution.
 
-Checkpoints, reports and logs persist in `MyDrive/AI-Detector/full-muril-gpu-v2-scipy114`. Allow approximately 15 GB free in Drive. After a Colab disconnect, reconnect a GPU and run all cells again using the same run folder; at most the unfinished epoch must replay. Use only one Colab runtime per run folder. GPU availability/session duration are controlled by Colab; the notebook does not bypass their limits.
+Completed fold reports, logs and final models persist in `MyDrive/AI-Detector/full-muril-gpu-v2-scipy114`. Epoch checkpoints stay on local disk to prevent Drive Bin growth. Keep several GB free for final models and exports, in addition to any legacy checkpoints. After a Colab runtime reset, reconnect a GPU and run all cells again using the same run folder; the unfinished fold/refit may need to replay. Use only one Colab runtime per run folder. GPU availability/session duration are controlled by Colab; the notebook does not bypass their limits.
 
 Once all comparisons, refits and application-loader parity checks pass, the notebook exports `results.zip` and `selected_models.zip` to Drive. The small results ZIP can be shared for review. The model ZIP contains the complete selected `artifacts/` directory, including full encoder checkpoints only where selected, and excludes private parity passages and optimizer states. Back up your local artifacts, extract the model ZIP, verify checksums and restart the app using the notebook's Windows instructions.
 
@@ -54,3 +54,34 @@ Each first training batch audits nonzero gradients in the word embeddings and ev
 - `.cache/full_finetuning/selected_artifacts/`: eventual serving bundles and full checkpoints, after refitting. The app supports both frozen and full-encoder artifacts.
 
 The run **stages** selected models and verifies them. It does not automatically overwrite the working application or publish large checkpoints to Git. After completion, review the final results and serving checks, then install the selected bundles as a complete set and restart the app. A full MuRIL checkpoint is roughly 950 MB, so any selected full models need an appropriate download/release channel rather than ordinary Git blobs. Current production models remain the previously validated frozen hybrids until this step is completed.
+
+## Drive storage and interrupted Colab runs
+
+Older launchers wrote `latest.pt` (model plus Adam optimizer, about 2.64 GiB)
+through the Drive mount every epoch. Replacing these files can leave the old
+copies in Drive's Bin, so the old 15 GB estimate did not account for accumulated
+trash. Identical filenames also occur in different folds; they are not
+necessarily interchangeable snapshots.
+
+The updated launcher keeps epoch checkpoints on Colab's **local disk**, and
+writes completed fold reports and final selected artifacts to Drive. On a fresh
+runtime it restores an available older Drive checkpoint for an unfinished fold,
+without modifying that source. Otherwise only the unfinished fold/refit may need
+to repeat. On the same runtime local epoch checkpoints can resume. This changes
+storage only: the training source, folds, search and SciPy version stay unchanged.
+Continue using **full-muril-gpu-v2-scipy114**, not a new run folder. The v1 folder
+is the separate attempt before the SciPy workaround; do not merge its results.
+
+Use `notebooks/Inspect_MuRIL_Run.ipynb` on a **CPU runtime** to download a small
+inventory and reports ZIP, even when GPU quota is exhausted. It does not train,
+load model files, or delete anything. Keep the active v2 folder intact. Review
+Bin entries and permanently remove only obsolete training snapshots after
+checking that the current resume files remain in the active folder. Do not
+empty unrelated files from the Bin blindly; permanent deletion is irreversible.
+
+Clearing Drive space does not restore GPU quota. Resume with the updated training
+notebook when Colab grants GPU access again (no guaranteed reset time), or use
+paid Colab compute if desired. Another GPU machine can run the same experiment
+with the same run directory and dependencies after transferring the saved run.
+Do not run two machines against one run folder simultaneously. Final model ZIPs
+also duplicate selected weights, so export them once when needed.

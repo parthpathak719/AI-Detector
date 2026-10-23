@@ -95,7 +95,7 @@ The selected setting improved the selection metric but did not generalize better
 
 ## Full-encoder experiment in progress
 
-[Open the full fine-tuning notebook in Google Colab](https://colab.research.google.com/github/parthpathak719/AI-Detector/blob/main/notebooks/Full_MuRIL_Finetuning.ipynb). Select a GPU runtime, click **Run all**, and authorize Drive. The notebook preserves checkpoints in Drive, runs the complete five-fold experiment, and exports verified selected models. It requires your Google sign-in; preparing the notebook does not start a Colab GPU automatically.
+[Open the full fine-tuning notebook in Google Colab](https://colab.research.google.com/github/parthpathak719/AI-Detector/blob/main/notebooks/Full_MuRIL_Finetuning.ipynb). Select a GPU runtime, click **Run all**, and authorize Drive. The notebook preserves completed fold results in Drive, keeps frequent epoch checkpoints on local disk, and exports verified selected models. A runtime reset may repeat the unfinished fold. It requires your Google sign-in; preparing the notebook does not start a Colab GPU automatically.
 
 A new all-layer MuRIL experiment uses **five grouped folds**, three encoder learning rates, early stopping inside each training fold, and twelve hybrid configurations. It is separate from the completed partial fine-tuning results above. **No completed full-fine-tuning gain is claimed yet.** See [the protocol, progress commands, and resume instructions](docs/full-finetuning.md). Production models stay unchanged while it runs.
 
