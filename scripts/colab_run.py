@@ -18,6 +18,7 @@ import scipy
 import sklearn
 
 from scripts import full_finetune as experiment
+from scripts.colab_storage import restore_checkpoint
 from scripts.train import TASKS, load_task
 
 
@@ -89,14 +90,20 @@ def main():
         raise SystemExit('No GPU is attached. In Colab choose Runtime > Change runtime type > T4 GPU, reconnect, then Run all.')
     root = args.run_root.resolve()
     root.mkdir(parents=True, exist_ok=True)
-    # Drive FUSE does not reliably implement cross-process flock. Keep the
-    # same-runtime lock on local disk and put heavy checkpoints in Drive via
-    # local symlinks. Do not run two Colab VMs against the same Drive directory.
+    # Epoch snapshots must stay off Drive: replacement through Drive FUSE can
+    # retain multi-GB old files in Trash. Completed fold reports remain durable.
     identity = hashlib.sha256(str(root).encode()).hexdigest()[:16]
-    local = Path('.cache/colab_sessions') / identity
+    local = Path('.cache/colab_local_checkpoints') / identity
     local.mkdir(parents=True, exist_ok=True)
-    for task in TASKS:
-        attach_folder(local / task, root / 'checkpoints' / task)
+    original_train = experiment.train_encoder
+    def recover_then_train(tokenizer, data, fit, stop, learning_rate, folder, tag, **kwargs):
+        relative = Path(folder).relative_to(local)
+        if restore_checkpoint(root / 'checkpoints' / relative, folder):
+            print(f'Recovered saved Drive checkpoint: {relative}', flush=True)
+        return original_train(tokenizer, data, fit, stop, learning_rate, folder, tag, **kwargs)
+    experiment.train_encoder = recover_then_train
+    print('Epoch checkpoints stay on local disk. Completed folds and final models persist '
+          'on Drive. A fresh runtime may repeat the unfinished fold.', flush=True)
     attach_folder(local / 'selected_artifacts', root / 'selected_artifacts')
     source = Path('reports/full_finetuning')
     reports = root / 'reports'

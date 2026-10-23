@@ -76,3 +76,61 @@ def test_colab_runner_requires_gpu(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match='No GPU is attached'):
         runner.main()
     assert not (tmp_path / 'run').exists()
+
+
+def test_restore_legacy_snapshot_preserves_drive_and_local_progress(tmp_path):
+    from scripts.colab_storage import restore_checkpoint
+    source, target = tmp_path / 'drive', tmp_path / 'local' / 'fold'
+    source.mkdir()
+    for name in ('latest.pt', 'best.safetensors', 'gradient_audit.json'):
+        (source / name).write_bytes(b'original')
+    assert restore_checkpoint(source, target)
+    (target / 'latest.pt').write_bytes(b'new progress')
+    assert not restore_checkpoint(source, target)
+    assert (target / 'latest.pt').read_bytes() == b'new progress'
+    assert (source / 'latest.pt').read_bytes() == b'original'
+
+
+def test_restore_rejects_incomplete_snapshot(tmp_path):
+    from scripts.colab_storage import restore_checkpoint
+    source, target = tmp_path / 'drive', tmp_path / 'local'
+    source.mkdir()
+    (source / 'latest.pt').write_bytes(b'checkpoint')
+    with pytest.raises(ValueError, match='Incomplete'):
+        restore_checkpoint(source, target)
+    assert not target.exists()
+
+
+def test_inventory_counts_durable_folds_and_excludes_weights(tmp_path):
+    from scripts.inspect_full_run import inspect_run
+    root = tmp_path / 'run'
+    folder = root / 'reports' / 'task2_attribution'
+    folder.mkdir(parents=True)
+    (folder / 'lr_2e-06_fold0.json').write_text('{}')
+    (folder / 'lr_2e-06_fold0.npz').write_bytes(b'arrays')
+    (folder / 'lr_2e-06_fold1.json').write_text('{}')
+    (root / 'checkpoints').mkdir()
+    (root / 'checkpoints' / 'latest.pt').write_bytes(b'weights')
+    output = tmp_path / 'inventory.zip'
+    result = inspect_run(root, output)
+    assert result['completed_finetuned_folds'] == 1
+    assert result['warnings']
+    with ZipFile(output) as archive:
+        assert all(not name.endswith(('.pt', '.npz')) for name in archive.namelist())
+    assert (root / 'checkpoints' / 'latest.pt').exists()
+
+
+def test_failed_restore_leaves_no_partial_checkpoint(tmp_path, monkeypatch):
+    import scripts.colab_storage as storage
+    source, target = tmp_path / 'drive', tmp_path / 'local' / 'fold'
+    source.mkdir()
+    for name in ('latest.pt', 'best.safetensors', 'gradient_audit.json'):
+        (source / name).write_bytes(b'original')
+    def fail(*args):
+        raise OSError('disk full')
+    monkeypatch.setattr(storage.shutil, 'copyfile', fail)
+    with pytest.raises(OSError, match='disk full'):
+        storage.restore_checkpoint(source, target)
+    assert not target.exists()
+    assert not list(target.parent.glob('.restore-*'))
+    assert (source / 'latest.pt').read_bytes() == b'original'
