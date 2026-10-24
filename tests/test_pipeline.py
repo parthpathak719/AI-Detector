@@ -101,7 +101,7 @@ def test_segments_show_source_without_changing_normalized_model_input():
 
 def test_high_model_score_does_not_claim_document_certainty():
     result = detector([.993, .007]).predict('A technical assignment sentence with formulas A* O(b^m).\n' * 40, 'en')
-    assert result['assessment'] == 'unvalidated_document'
+    assert result['assessment'] == 'document_model_signal'
     assert result['uncertain'] and not result['model_uncertain']
     assert result['label'] == 'human'  # No hard-coded AI override or score cap.
     assert result['score'] == pytest.approx(.993)

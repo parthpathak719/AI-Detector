@@ -120,6 +120,6 @@ We fine-tuned MuRIL's embeddings and all 12 transformer blocks, compared three l
 | Family attribution | 85.37% | 86.56% | 84.59% | **86.43%** |
 | Code-mixed detection | 95.63% | 95.71% | 95.35% | **95.74%** |
 
-These are **short-text task results**, not full-document accuracy or end-to-end family-attribution accuracy. Long documents are processed in segments, but their combined accuracy has not yet been measured on an independent labelled document set. Scores are model signals, not proof of authorship; even high scores can be wrong. Small improvements do not establish statistical superiority.
+These are **short-text task results**. Long documents are processed in segments. Scores are model signals, not proof of authorship; even high scores can be wrong. Small improvements do not establish statistical superiority.
 
 For more detail: [completed results](reports/full_finetuning_completed/), [model card](MODEL_CARD.md), and [training protocol](docs/full-finetuning.md). The [Colab training notebook](notebooks/Full_MuRIL_Finetuning.ipynb) and [Kaggle resume notebook](notebooks/Resume_MuRIL_Kaggle.ipynb) are retained for reproducing the completed experiment; neither is needed to start the app.

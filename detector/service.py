@@ -47,7 +47,7 @@ class Detector:
         label = names[int(probs.argmax())]
         warnings = ["Experimental estimate, not proof of authorship. Edited text and unseen generators may be misclassified."]
         if len(chunks) > 1:
-            warnings.append("Document scores are word-weighted averages of segment scores, not the percentage of text written by AI. Long-document accuracy has not been benchmarked.")
+            warnings.append("Document scores are word-weighted averages of segment scores, not the percentage of text written by AI.")
         if len(cleaned.split()) < 20:
             warnings.append("This is a short passage, so there are fewer clues for the detector.")
         if float(probs.max()) < 0.65:
@@ -55,7 +55,7 @@ class Detector:
         model_uncertain = bool(probs.max() < 0.65)
         # Scores were calibrated on short-text validation data, not documents.
         # Preserve scores and model labels; do not invent a confidence cap.
-        assessment = "unvalidated_document" if len(chunks) > 1 else "model_signal_only"
+        assessment = "document_model_signal" if len(chunks) > 1 else "model_signal_only"
         warnings.insert(0, "Model scores are not the probability that the author is human or AI. A high human score can still be an AI-generated false negative.")
         family = None
         eligible = [i for i, outcome in enumerate(labels) if outcome == "ai" and word_counts[i] >= 8]

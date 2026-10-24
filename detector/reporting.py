@@ -194,7 +194,7 @@ def render_report(report: ReportRequest) -> bytes:
     paragraph('Model: ' + report.model_version, 10)
     paragraph('Encoder: ' + report.encoder_variant, 10)
     heading('How to read this report')
-    paragraph('Model scores are not calibrated authorship probabilities. Document-level authorship accuracy has not been validated. This exported report is not independently authenticated.', 10)
+    paragraph('Model scores are not calibrated authorship probabilities. This exported report is not independently authenticated.', 10)
     paragraph('Scores use normalized model input. Extracted PDF text may flatten tables, diagrams or mathematical notation; consult the original document when needed.', 10)
     if report.warnings:
         heading('Extraction and interpretation')

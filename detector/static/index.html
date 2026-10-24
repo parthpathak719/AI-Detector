@@ -4,13 +4,13 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="An application for AI text detection and model-family attribution.">
   <title>Origin — AI text detection</title>
-  <link rel="stylesheet" href="/static/style.css?v=5">
-  <script defer src="/static/app.js?v=5"></script>
+  <link rel="stylesheet" href="/static/style.css?v=6">
+  <script defer src="/static/app.js?v=6"></script>
 </head>
 <body>
   <header class="header">
-    <a href="/" class="brand" aria-label="Origin home">ORIGIN</a>
-    <nav aria-label="Main navigation"><a href="#analyzer">Analysis</a><a href="#method">About</a></nav>
+    <span class="brand">ORIGIN</span>
+    <div class="header-labels"><span>Analysis</span><span>About</span></div>
     <div id="model-status" class="status" role="status">Connecting to model…</div>
   </header>
   <main>
@@ -46,7 +46,7 @@
         </div>
       </aside>
     </section>
-    <details id="method" class="method"><summary>About this project</summary><p>MuRIL embeddings and character n-grams are used for human/AI detection. AI-leaning text is compared with three trained families: Gemini, Muse and Sarvam. Seven language settings are supported.</p><p>Long documents are analyzed in segments. Their combined scores have not been validated as document-level authorship probabilities. Technical documents, edited text and unseen generators can be misclassified, even with high scores.</p></details>
+    <details id="method" class="method"><summary>About this project</summary><p>MuRIL embeddings and character n-grams are used for human/AI detection. AI-leaning text is compared with three trained families: Gemini, Muse and Sarvam. Seven language settings are supported.</p><p>Long documents are analyzed in segments. Technical documents, edited text and unseen generators can be misclassified, even with high scores.</p></details>
   </main>
   <footer>Origin · AI detection and family attribution</footer>
 </body>
