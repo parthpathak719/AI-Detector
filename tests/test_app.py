@@ -125,3 +125,37 @@ def test_encoder_variant_round_trip_matches_frozen_encoder(client, tmp_path):
         np.testing.assert_allclose(actual, expected, atol=2e-6, rtol=2e-5)
     finally:
         encoder.task_layers.pop('round_trip_test', None)
+
+
+def test_jsonl_upload_matches_concatenated_text(client):
+    import json
+    text = PASSAGE + '\n\n' + PASSAGE
+    raw = '\n'.join(json.dumps({'text': PASSAGE, 'label': label}) for label in ['ai', 'human'])
+    uploaded = client.post('/api/analyze-file', data={'language': 'en'}, files={'file': ('data.jsonl', raw.encode())})
+    assert uploaded.status_code == 200, uploaded.text
+    result = uploaded.json()
+    pasted = client.post('/api/analyze', json={'text': text, 'language': 'en'}).json()
+    assert result['scores'] == pasted['scores']
+    assert result['source_text'] == text
+    assert any('2 JSONL record(s)' in note for note in result['warnings'])
+
+
+def test_pdf_report_download_contains_results_and_source(client):
+    from pypdf import PdfReader
+    from io import BytesIO
+    data = client.post('/api/analyze', json={'text': PASSAGE, 'language': 'en'}).json()
+    response = client.post('/api/report.pdf', json={**data, 'source_name': 'example.txt'})
+    assert response.status_code == 200, response.text[:200] if response.status_code != 200 else ''
+    assert response.headers['content-type'] == 'application/pdf'
+    assert 'origin-analysis.pdf' in response.headers['content-disposition']
+    assert response.headers['cache-control'] == 'no-store'
+    assert response.content.startswith(b'%PDF-')
+    text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(response.content)).pages)
+    assert 'example.txt' in text and 'bookshop' in text and 'Segment 01' in text
+    assert 'not authorship confidence' in text
+
+
+def test_pdf_export_rejects_incomplete_report_and_stale_assets_revalidate(client):
+    assert client.post('/api/report.pdf', json={'label': 'human'}).status_code == 422
+    assert client.get('/static/app.js?v=4').headers['cache-control'] == 'no-store'
+    assert 'edit-source' not in client.get('/').text

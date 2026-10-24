@@ -1,6 +1,6 @@
 # Origin — AI text detection & family attribution
 
-A research web application using MuRIL embeddings, character n-grams and logistic regression. Paste text or upload TXT, Markdown, PDF, DOCX or legacy DOC files. Detection compares human/AI patterns; conditional attribution compares **Gemini, Muse and Sarvam** only.
+A research web application using MuRIL embeddings, character n-grams and logistic regression. Paste text or upload TXT, Markdown, JSONL, PDF, DOCX or legacy DOC files. Detection compares human/AI patterns; conditional attribution compares **Gemini, Muse and Sarvam** only.
 
 Supports English, Hindi, Tamil, Kannada, Hinglish, Tanglish and Kanglish. Select the language explicitly. Scores are model signals, not proof of authorship. Technical assignments and unseen generators can receive strongly incorrect scores.
 
@@ -75,13 +75,15 @@ ZIP archives, full encoder weights, optimizer snapshots, local experiment output
 - Up to **100,000 characters / 20,000 cleaned words**, **10 MB** per upload, and **300 PDF pages**.
 - Searchable PDF extraction uses spacing-aware text flow. Tables, diagrams, superscripts and subscripts can still flatten; scanned PDFs require external OCR. Word extraction covers the main body and tables, with format-specific omissions reported.
 - Every cleaned word is processed in windows of at most 128 MuRIL tokens. Scores are averaged by cleaned word count; they are not the percentage of text written by AI.
-- Segment cards show extracted **source text**, preserving punctuation, case and numbers. Each card optionally reveals the normalized model input. Source excerpts can overlap at a split compound word while model words are counted once.
-- The full extracted text can be reviewed and copied into the editable input for another analysis.
+- Segment cards show extracted **source text**, preserving punctuation, case and numbers. Source excerpts can overlap at a split compound word while model words are counted once.
+- Segment cards expand individually; the unused full-text review/edit controls have been removed. Ordinary text is 16–17 px, with helper labels at least 14 px.
+- JSONL accepts one JSON string or an object with a string `text` (or `content`) field per nonblank line. Records are combined in file order into **one document analysis**, not independent predictions. Labels and metadata are excluded. Invalid records report their line number.
+- **Download PDF report** exports the summary, model scores, extraction notes and all source segments as a paginated PDF. Embedded Noto fonts support English, Hindi, Tamil and Kannada; unsupported characters are marked with a replacement symbol.
 - Multi-segment reports say **Authorship inconclusive** because document-level accuracy has not been validated. Their underlying model scores remain visible and unchanged. Short-text headings describe model signals, not verified origin.
 - Family attribution runs only for an AI-leaning overall model label, using AI-leaning segments with at least eight cleaned words. Unknown generators cannot be identified reliably by this three-family classifier.
 - Strict normalization removes numbers and punctuation to match training. This can discard important information from equations and technical material. Improving extraction does not fix model domain failures; the application update does not retrain or alter model thresholds.
 
-Inputs are processed locally and not retained by application code or sent to a generation API. Multipart processing may use temporary upload storage, which is closed after each request. Exported JSON includes source text; save and share it intentionally. Avoid exposing the research server publicly without deployment controls.
+Inputs are processed locally and not retained by application code or sent to a generation API. Multipart processing may use temporary upload storage, which is closed after each request. PDF export sends the existing analysis to the local server for in-memory formatting; it does not run inference again. Exported PDFs include source text and are not independently authenticated; save and share them intentionally. Avoid exposing the research server publicly without deployment controls.
 
 ## Reproduce and verify
 

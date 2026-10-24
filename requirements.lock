@@ -5,8 +5,11 @@ cffi==2.1.1
 charset-normalizer==3.5.2
 click==8.5.0
 cryptography==50.0.2
+defusedxml==0.7.1
 fastapi==0.115.12
 filelock==3.32.3
+fonttools==4.67.0
+fpdf2==2.8.9
 fsspec==2026.7.0
 h11==0.16.0
 hf-xet==1.7.0
@@ -50,5 +53,6 @@ tqdm==4.70.1
 transformers==4.51.3
 typing-inspection==0.4.4
 typing_extensions==4.16.0
+uharfbuzz==0.52.0
 urllib3==2.8.0
 uvicorn==0.34.2

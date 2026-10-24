@@ -1,13 +1,14 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
-let mode = 'paste', working = false, ready = false, selectedFile = null, lastReport = null, visibleSegments = 0;
+let mode = 'paste', working = false, ready = false, exporting = false, selectedFile = null, lastReport = null, visibleSegments = 0;
 const sample = 'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.';
 function clearResult() {
   lastReport = null;
   $('result').hidden = true;
   $('empty-result').hidden = false;
   $('segments-section').hidden = true;
+  $('export-error').hidden = true;
 }
 function setMode(next) {
   if (working) return;
@@ -42,8 +43,8 @@ $('clear').addEventListener('click', () => { $('text').value = ''; count(); $('e
 function chooseFile(file) {
   if (working) return;
   $('error').hidden = true; clearResult();
-  if (file && !/\.(txt|md|pdf|docx|doc)$/iu.test(file.name)) {
-    showError('Choose a TXT, Markdown, PDF, DOCX or DOC file.'); file = null;
+  if (file && !/\.(txt|md|jsonl|pdf|docx|doc)$/iu.test(file.name)) {
+    showError('Choose a TXT, Markdown, JSONL, PDF, DOCX or DOC file.'); file = null;
   }
   if (file && file.size > MAX_FILE) { showError('Please choose a file under 10 MB.'); file = null; }
   selectedFile = file;
@@ -78,18 +79,14 @@ function bars(target, scores) {
 function showSegments() {
   const end = Math.min(visibleSegments + 12, lastReport.segments.length);
   for (const segment of lastReport.segments.slice(visibleSegments, end)) {
-    const card = document.createElement('article'); card.className = `segment ${segment.label}`;
-    const head = document.createElement('div'); head.className = 'segment-head';
+    const card = document.createElement('details'); card.open = segment.index === 1; card.className = `segment ${segment.label}`;
+    const head = document.createElement('summary'); head.className = 'segment-head';
     const number = document.createElement('span'); number.textContent = `SEGMENT ${String(segment.index).padStart(2, '0')}`;
     const verdict = document.createElement('strong'); verdict.textContent = `${segment.label === 'ai' ? 'AI-leaning' : 'Human-leaning'} · ${(segment.ai_score * 100).toFixed(1)}% AI score`;
     head.append(number, verdict);
     const text = document.createElement('p'); text.textContent = segment.text;
     const meta = document.createElement('small'); meta.textContent = `${segment.word_count} normalized words · ${segment.token_count} model tokens`;
-    const modelDetails = document.createElement('details'); modelDetails.className = 'model-input';
-    const modelSummary = document.createElement('summary'); modelSummary.textContent = 'Show normalized model input';
-    const modelText = document.createElement('p'); modelText.textContent = segment.model_text || segment.text;
-    modelDetails.append(modelSummary, modelText);
-    card.append(head, text, meta, modelDetails); $('segment-list').append(card);
+    card.append(head, text, meta); $('segment-list').append(card);
   }
   visibleSegments = end;
   $('more-segments').hidden = end === lastReport.segments.length;
@@ -97,7 +94,7 @@ function showSegments() {
 }
 $('more-segments').addEventListener('click', showSegments);
 function showResult(data, elapsed) {
-  lastReport = data;
+  lastReport = {...data, source_name: mode === 'upload' ? selectedFile.name.slice(0, 240) : 'Pasted text'};
   $('empty-result').hidden = true; $('result').hidden = false;
   const documentResult = data.assessment === 'unvalidated_document';
   $('prediction').textContent = documentResult ? 'Authorship inconclusive' : data.label === 'ai' ? 'AI-leaning model signal' : 'Human-leaning model signal';
@@ -107,7 +104,7 @@ function showResult(data, elapsed) {
     : 'This is a learned pattern match, not a verified origin or probability of authorship.';
   $('confidence-tag').textContent = documentResult ? 'Document result unvalidated' : 'Model signal only';
   $('confidence').textContent = 'Not authorship confidence';
-  $('extracted-text').textContent = data.source_text || '';
+
   $('result-words').textContent = data.word_count.toLocaleString();
   $('result-segments').textContent = data.chunk_count.toLocaleString();
   $('result-time').textContent = elapsed < 60 ? `${elapsed.toFixed(1)}s` : `${(elapsed / 60).toFixed(1)}m`;
@@ -125,18 +122,35 @@ function showResult(data, elapsed) {
   $('segment-list').replaceChildren(); visibleSegments = 0; showSegments();
   if (matchMedia('(max-width:760px)').matches) $('result').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth', block: 'start'});
 }
-$('edit-source').addEventListener('click', () => {
-  if (!lastReport || working) return;
-  const source = lastReport.source_text;
-  setMode('paste');
-  $('text').value = source;
-  count(); clearResult(); $('text').focus();
-});
-$('download-report').addEventListener('click', () => {
-  if (!lastReport) return;
-  const url = URL.createObjectURL(new Blob([JSON.stringify(lastReport, null, 2)], {type: 'application/json'}));
-  const link = document.createElement('a'); link.href = url; link.download = 'origin-analysis.json'; link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+$('download-report').addEventListener('click', async () => {
+  if (!lastReport || exporting || working) return;
+  const report = lastReport;
+  exporting = true;
+  $('download-report').disabled = true;
+  $('download-report').textContent = 'Creating PDF…';
+  $('export-error').hidden = true;
+  $('export-status').hidden = false;
+  $('export-status').textContent = 'Preparing the complete report, including all segments.';
+  try {
+    const response = await fetch('/api/report.pdf', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(report)
+    });
+    if (!response.ok) throw new Error('The PDF could not be created. Check the server and try again.');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'origin-analysis.pdf'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (error) {
+    $('export-error').textContent = error.message;
+    $('export-error').hidden = false;
+  } finally {
+    exporting = false;
+    $('download-report').disabled = false;
+    $('download-report').textContent = 'Download PDF report';
+    $('export-status').hidden = true;
+  }
 });
 function lockForm(value) {
   for (const id of ['paste-tab', 'upload-tab', 'text', 'file', 'language', 'clear', 'example', 'remove-file']) $(id).disabled = value;

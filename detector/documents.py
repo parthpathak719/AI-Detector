@@ -5,6 +5,7 @@ Encrypted files, image-only PDFs and older Word binary layouts are rejected.
 """
 from io import BytesIO
 from pathlib import Path
+import json
 import re
 import struct
 from xml.etree import ElementTree as ET
@@ -16,7 +17,7 @@ from pypdf import PdfReader
 from detector.text import MAX_CHARS
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
-SUPPORTED = {".txt", ".md", ".pdf", ".docx", ".doc"}
+SUPPORTED = {".txt", ".md", ".jsonl", ".pdf", ".docx", ".doc"}
 
 
 def bounded(text):
@@ -137,14 +138,46 @@ def doc_text(content):
         return bounded(text), ["Legacy Word extraction covers main-body text; embedded objects, headers and footnotes are excluded."]
 
 
+def jsonl_text(content):
+    """Read text records only; labels, IDs and other metadata never enter inference."""
+    source = content.decode("utf-8-sig")
+    parts, size = [], 0
+    for number, line in enumerate(source.splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except (ValueError, RecursionError) as error:
+            raise ValueError(f"JSONL line {number} is not valid JSON. Use one JSON value per line.") from error
+        if isinstance(record, str):
+            text = record
+        elif isinstance(record, dict):
+            text = record.get("text", record.get("content"))
+        else:
+            text = None
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError(f'JSONL line {number} needs a nonempty string or a string field named "text" or "content".')
+        if "\x00" in text:
+            raise ValueError(f"JSONL line {number} contains unsupported null characters.")
+        size += len(text) + (2 if parts else 0)
+        if size > MAX_CHARS:
+            raise ValueError(f"The JSONL text exceeds {MAX_CHARS:,} characters. Split the file into smaller documents.")
+        parts.append(text)
+    if not parts:
+        raise ValueError("The JSONL file has no text records.")
+    return "\n\n".join(parts), [f"Read {len(parts)} JSONL record(s) in file order as one document, not separate predictions. Labels and other metadata were excluded."]
+
+
 def extract_document(filename, content):
     suffix = Path(filename or "").suffix.lower()
     if suffix not in SUPPORTED:
-        raise ValueError("Choose a .txt, .md, .pdf, .docx or .doc file.")
+        raise ValueError("Choose a .txt, .md, .jsonl, .pdf, .docx or .doc file.")
     if len(content) > MAX_FILE_BYTES:
         raise ValueError("Upload a file of up to 10 MB.")
     try:
-        if suffix == ".pdf":
+        if suffix == ".jsonl":
+            text, notes = jsonl_text(content)
+        elif suffix == ".pdf":
             text, notes = pdf_text(content)
         elif suffix == ".docx":
             text, notes = docx_text(content)
