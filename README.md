@@ -1,4 +1,4 @@
-# Origin — AI text detection & family attribution
+# Lexora — AI text detection & family attribution
 
 A local web app using fine-tuned MuRIL embeddings and character n-grams to classify text as human- or AI-leaning. For AI-leaning text, it compares three model families: **Gemini, Muse and Sarvam**.
 

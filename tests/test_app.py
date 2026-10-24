@@ -15,7 +15,7 @@ def client():
 
 def test_home_and_real_prediction(client):
     home = client.get('/')
-    assert home.status_code == 200 and 'Origin' in home.text
+    assert home.status_code == 200 and 'Lexora' in home.text
     assert "frame-ancestors 'none'" in home.headers['content-security-policy']
     response = client.post('/api/analyze', json={'text': PASSAGE, 'language': 'en'})
     assert response.status_code == 200
@@ -147,7 +147,7 @@ def test_pdf_report_download_contains_results_and_source(client):
     response = client.post('/api/report.pdf', json={**data, 'source_name': 'example.txt'})
     assert response.status_code == 200, response.text[:200] if response.status_code != 200 else ''
     assert response.headers['content-type'] == 'application/pdf'
-    assert 'origin-analysis.pdf' in response.headers['content-disposition']
+    assert 'lexora-analysis.pdf' in response.headers['content-disposition']
     assert response.headers['cache-control'] == 'no-store'
     assert response.content.startswith(b'%PDF-')
     text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(response.content)).pages)

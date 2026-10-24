@@ -43,9 +43,9 @@ async def main():
         async with page.expect_download() as download_info:
             await page.get_by_role("button", name="Download PDF report").click()
         download = await download_info.value
-        assert download.suggested_filename == "origin-analysis.pdf"
-        await download.save_as(out / 'origin-analysis.pdf')
-        assert (out / 'origin-analysis.pdf').read_bytes().startswith(b'%PDF-')
+        assert download.suggested_filename == "lexora-analysis.pdf"
+        await download.save_as(out / 'lexora-analysis.pdf')
+        assert (out / 'lexora-analysis.pdf').read_bytes().startswith(b'%PDF-')
         assert await page.locator('#edit-source').count() == 0
         assert await page.locator('#extracted-text').count() == 0
         assert await page.locator('#segment-list').count() == 0
@@ -53,7 +53,7 @@ async def main():
         assert await page.get_by_text('JSONL format', exact=True).count() == 0
         from io import BytesIO
         from pypdf import PdfReader
-        report_text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO((out / 'origin-analysis.pdf').read_bytes())).pages)
+        report_text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO((out / 'lexora-analysis.pdf').read_bytes())).pages)
         assert 'Segment 01' in report_text and 'Segment 09' in report_text
         await page.screenshot(path=str(out / "document-result.png"), full_page=True)
         import json

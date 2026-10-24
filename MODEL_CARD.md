@@ -1,4 +1,4 @@
-# Origin model card
+# Lexora model card
 
 ## Intended use
 
