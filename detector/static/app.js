@@ -78,13 +78,13 @@ function bars(target, scores) {
 function showResult(data, elapsed) {
   lastReport = {...data, source_name: mode === 'upload' ? selectedFile.name.slice(0, 240) : 'Pasted text'};
   $('empty-result').hidden = true; $('result').hidden = false;
-  const documentResult = data.assessment === 'unvalidated_document';
+  const documentResult = data.assessment === 'document_model_signal';
   $('prediction').textContent = documentResult ? 'Authorship inconclusive' : data.label === 'ai' ? 'AI-leaning model signal' : 'Human-leaning model signal';
   $('prediction-note').textContent = documentResult
-    ? `The model leans ${data.label === 'ai' ? 'AI' : 'human'}, but document-level authorship accuracy has not been validated. Even a high score can be wrong.`
+    ? `The model leans ${data.label === 'ai' ? 'AI' : 'human'}, based on the combined segment scores. Even a high score can be wrong.`
     : data.model_uncertain ? 'The model scores are close. Neither authorship nor generator identity is established.'
     : 'This is a learned pattern match, not a verified origin or probability of authorship.';
-  $('confidence-tag').textContent = documentResult ? 'Document result unvalidated' : 'Model signal only';
+  $('confidence-tag').textContent = documentResult ? 'Document model signal' : 'Model signal only';
   $('confidence').textContent = 'Not authorship confidence';
 
   $('result-words').textContent = data.word_count.toLocaleString();

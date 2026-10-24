@@ -47,7 +47,7 @@ def export_run(root):
         raise ValueError('Artifact manifest does not match the three selected models')
     lines.extend(['', 'CV scores above were used for tuning and are not unbiased final estimates. '
                   'Small differences do not establish statistical superiority. The existing test set has been examined historically. '
-                  'These are separate short-text task metrics, not document-level/cascade accuracy.', '',
+                  'These are separate short-text task metrics.', '',
                   'The selected_models.zip archive contains an artifacts/ directory for the application. '
                   'It excludes private parity examples and training checkpoints. Back up the current artifacts directory '
                   'before replacing it, then run scripts.verify_artifacts and restart the application.', ''])

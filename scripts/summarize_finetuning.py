@@ -31,7 +31,7 @@ def main():
               'On Windows use `.\\.venv\\Scripts\\python.exe` instead of `.venv/bin/python`. This CPU experiment may take tens of minutes and several GB of cache storage. It replaces the serving artifacts with CV-selected winners; earlier artifacts are preserved locally in `.cache/finetune/previous_artifacts/`. Never rerun searches to optimize observed test scores.', '',
               '## Interpretation', '',
               "The presentation's 85.9% attribution result is five-fold grouped CV under the historical study protocol. The first application version's 84.25% was a single existing-test-split result. They are not directly comparable. In that first application experiment the same-test frozen baseline scored 84.76%, so classifier-only tuning did not improve attribution test accuracy. The table above is a new, matched comparison of frozen and partially fine-tuned representations.", '',
-              'These remain separate short-text task metrics, not document-level or end-to-end cascade accuracy. Cross-task source overlaps and the historical reuse of the existing test data remain limitations. Full fold results, losses, per-language scores and confusion matrices are in `reports/finetuning/`.', '']
+              'These are separate short-text task metrics. Cross-task source overlaps and the historical reuse of the existing test data remain limitations. Full fold results, losses, per-language scores and confusion matrices are in `reports/finetuning/`.', '']
     Path('docs/finetuning-results.md').write_text('\n'.join(lines), encoding='utf-8')
     print('\n'.join(lines[:12]))
 
