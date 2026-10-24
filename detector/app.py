@@ -59,7 +59,7 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Origin · AI text detection", lifespan=lifespan)
+app = FastAPI(title="Lexora · AI text detection", lifespan=lifespan)
 app.add_middleware(BodyLimit)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/fonts", StaticFiles(directory=Path(__file__).parent / "fonts"), name="fonts")
@@ -135,6 +135,6 @@ async def export_pdf(report: ReportRequest):
     # storing uploaded text/reports. This is an export, not signed evidence.
     content = await run_in_threadpool(render_report, report)
     return Response(content, media_type="application/pdf", headers={
-        "Content-Disposition": 'attachment; filename="origin-analysis.pdf"',
+        "Content-Disposition": 'attachment; filename="lexora-analysis.pdf"',
         "Cache-Control": "no-store",
     })

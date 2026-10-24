@@ -119,7 +119,7 @@ $('download-report').addEventListener('click', async () => {
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url; link.download = 'origin-analysis.pdf'; link.click();
+    link.href = url; link.download = 'lexora-analysis.pdf'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   } catch (error) {
     $('export-error').textContent = error.message;

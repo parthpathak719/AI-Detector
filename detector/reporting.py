@@ -58,7 +58,7 @@ class ReportPDF(FPDF):
         self.set_xy(18, 18)
         self.set_font('NotoSans', size=10)
         self.set_text_color(85, 67, 150)
-        self.cell(0, 6, 'ORIGIN  /  TEXT ANALYSIS', new_x='LMARGIN', new_y='NEXT')
+        self.cell(0, 6, 'LEXORA  /  TEXT ANALYSIS', new_x='LMARGIN', new_y='NEXT')
         self.set_draw_color(222, 225, 234)
         self.line(18, 27, self.w - 18, 27)
         self.set_y(34)
@@ -69,7 +69,7 @@ class ReportPDF(FPDF):
         self.line(18, self.get_y(), self.w - 18, self.get_y())
         self.set_font('NotoSans', size=9)
         self.set_text_color(100, 105, 120)
-        self.cell(0, 9, f'Origin  /  Analysis report                                      {self.page_no()}', align='R')
+        self.cell(0, 9, f'Lexora  /  Analysis report                                      {self.page_no()}', align='R')
 
 
 def render_report(report: ReportRequest) -> bytes:
@@ -129,8 +129,8 @@ def render_report(report: ReportRequest) -> bytes:
             pdf.cell(width - 12, 12, f'{score:.1%}')
         pdf.set_xy(pdf.l_margin, top + 37)
 
-    pdf.set_title('Origin — Text analysis report')
-    pdf.set_author('Origin')
+    pdf.set_title('Lexora — Text analysis report')
+    pdf.set_author('Lexora')
     pdf.add_page()
     paragraph('Text analysis report', 25, line_height=12)
     pdf.ln(5)
