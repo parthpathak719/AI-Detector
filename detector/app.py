@@ -4,13 +4,14 @@ import logging
 from pathlib import Path
 from typing import Literal
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from detector.service import Detector
 from detector.documents import extract_document, MAX_FILE_BYTES, SUPPORTED
 from detector.text import MAX_CHARS
+from detector.reporting import ReportRequest, render_report
 
 STATIC = Path(__file__).parent / "static"
 MAX_BODY = MAX_FILE_BYTES + 64 * 1024
@@ -61,6 +62,7 @@ async def lifespan(app):
 app = FastAPI(title="Origin · AI text detection", lifespan=lifespan)
 app.add_middleware(BodyLimit)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.mount("/fonts", StaticFiles(directory=Path(__file__).parent / "fonts"), name="fonts")
 
 
 @app.middleware("http")
@@ -69,7 +71,7 @@ async def response_headers(request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
-    if request.url.path.startswith("/api/"):
+    if request.url.path.startswith(("/api/", "/static/")) or request.url.path == "/":
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -112,7 +114,7 @@ async def analyze_text(body: TextRequest):
 async def analyze_file(file: UploadFile = File(...), language: Language = Form(...)):
     try:
         if Path(file.filename or "").suffix.lower() not in SUPPORTED:
-            raise HTTPException(415, "Upload a .txt, .md, .pdf, .docx or .doc file.")
+            raise HTTPException(415, "Upload a .txt, .md, .jsonl, .pdf, .docx or .doc file.")
         content = await file.read(MAX_FILE_BYTES + 1)
         if len(content) > MAX_FILE_BYTES:
             raise HTTPException(413, "Please upload a file under 10 MB.")
@@ -125,3 +127,14 @@ async def analyze_file(file: UploadFile = File(...), language: Language = Form(.
         return result
     finally:
         await file.close()
+
+
+@app.post("/api/report.pdf")
+async def export_pdf(report: ReportRequest):
+    # Render the already-computed result without rerunning the encoder or
+    # storing uploaded text/reports. This is an export, not signed evidence.
+    content = await run_in_threadpool(render_report, report)
+    return Response(content, media_type="application/pdf", headers={
+        "Content-Disposition": 'attachment; filename="origin-analysis.pdf"',
+        "Cache-Control": "no-store",
+    })

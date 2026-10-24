@@ -50,3 +50,35 @@ def test_pdf_preserves_notation_and_reports_layout_limitations():
     assert 'A* O(b^d)' in text
     assert '4 cells' in text
     assert any('superscripts' in note for note in notes)
+
+
+def test_jsonl_extracts_only_text_fields_in_order():
+    import json
+    records = [{'id': 1, 'label': 'human', 'text': 'पहला पाठ यहाँ है।'},
+               {'content': 'Second passage.', 'metadata': 'DO NOT ANALYZE'}, 'Third passage.']
+    raw = '\ufeff' + '\n\n'.join(json.dumps(r, ensure_ascii=False) for r in records)
+    text, notes = extract_document('records.JSONL', raw.encode('utf-8'))
+    assert text == 'पहला पाठ यहाँ है।\n\nSecond passage.\n\nThird passage.'
+    assert 'DO NOT ANALYZE' not in text and 'human' not in text
+    assert '3 JSONL record(s)' in notes[0]
+    assert 'not separate predictions' in notes[0]
+
+
+@pytest.mark.parametrize('content, message', [
+    (b'{"text":"valid"}\nnot json', 'line 2'),
+    (b'{"label":"ai"}', 'line 1'),
+    (b'{"text":123}', 'line 1'),
+    (b'[]', 'line 1'),
+    (b'{"text":""}', 'line 1'),
+    (b'\n\n', 'no text records'),
+    (b'{"text":"bad\\u0000text"}', 'null characters'),
+])
+def test_invalid_jsonl_has_actionable_errors(content, message):
+    with pytest.raises(ValueError, match=message):
+        extract_document('data.jsonl', content)
+
+
+def test_jsonl_extracted_text_limit():
+    import json
+    with pytest.raises(ValueError, match='exceeds'):
+        extract_document('data.jsonl', json.dumps({'text':'a' * 100001}).encode())

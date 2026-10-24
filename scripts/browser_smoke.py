@@ -15,6 +15,7 @@ async def main():
         page.on("console", lambda message: errors.append(message.text) if message.type == "error" and "422" not in message.text else None)
         await page.goto("http://127.0.0.1:8000")
         await page.get_by_text("Model ready", exact=True).wait_for()
+        await page.evaluate("document.fonts.ready")
         await page.screenshot(path=str(out / "desktop.png"), full_page=True)
         await page.get_by_role("button", name="Try an example").click()
         passage = await page.locator("#text").input_value()
@@ -40,10 +41,29 @@ async def main():
         assert int(await page.locator("#result-segments").inner_text()) > 1
         assert await page.locator(".segment").count() > 1
         async with page.expect_download() as download_info:
-            await page.get_by_role("button", name="Export report").click()
+            await page.get_by_role("button", name="Download PDF report").click()
         download = await download_info.value
-        assert download.suggested_filename == "origin-analysis.json"
+        assert download.suggested_filename == "origin-analysis.pdf"
+        await download.save_as(out / 'origin-analysis.pdf')
+        assert (out / 'origin-analysis.pdf').read_bytes().startswith(b'%PDF-')
+        assert await page.locator('#edit-source').count() == 0
+        assert await page.locator('#extracted-text').count() == 0
+        assert await page.locator('.segment[open]').count() == 1
+        await page.locator('.segment summary').nth(1).click()
+        assert await page.locator('.segment').nth(1).get_attribute('open') is not None
         await page.screenshot(path=str(out / "document-result.png"), full_page=True)
+        import json
+        jsonl = json.dumps({'text': passage, 'label': 'ai'}).encode()
+        await page.locator('#file').set_input_files({'name': 'data.jsonl', 'mimeType': 'application/x-ndjson', 'buffer': jsonl})
+        await page.get_by_role('button', name='Analyze content').click()
+        await page.locator('#result:not([hidden])').wait_for(timeout=60000)
+        assert await page.locator('#prediction').inner_text() == result
+        await page.locator('.limitations summary').click()
+        assert '1 JSONL record(s)' in await page.locator('#warnings').inner_text()
+        await page.locator('#file').set_input_files({'name': 'bad.jsonl', 'mimeType': 'application/x-ndjson', 'buffer': b'{broken'})
+        await page.get_by_role('button', name='Analyze content').click()
+        await page.locator('#error:not([hidden])').wait_for()
+        assert 'line 1' in await page.locator('#error').inner_text()
         assert "16 handcrafted" not in await page.locator("body").inner_text()
         await page.get_by_role("tab", name="Paste text").click()
         await page.locator("#text").fill("too short")
@@ -54,6 +74,10 @@ async def main():
         await page.get_by_role("button", name="Clear", exact=True).click()
         await page.screenshot(path=str(out / "mobile.png"), full_page=True)
         assert not await page.evaluate("document.documentElement.scrollWidth > innerWidth")
+        small = await page.evaluate("""() => [...document.querySelectorAll('p,button,small,label,summary,select,textarea')]
+          .filter(e => e.getClientRects().length && parseFloat(getComputedStyle(e).fontSize) < 14)
+          .map(e => e.id || e.className)""")
+        assert not small, small
         assert not errors, errors
         print("Browser checks passed: real inference, upload parity, validation error, stale-result clearing, long-document segmentation, report export, mobile overflow, no JavaScript errors.")
         await browser.close()
