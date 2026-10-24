@@ -72,7 +72,7 @@ storage only: the training source, folds, search and SciPy version stay unchange
 Continue using **full-muril-gpu-v2-scipy114**, not a new run folder. The v1 folder
 is the separate attempt before the SciPy workaround; do not merge its results.
 
-For saved-run inspection, `scripts.inspect_full_run` remains available without a separate notebook. The two retained notebooks are the Colab training launcher and [the Kaggle resume launcher](../notebooks/Resume_MuRIL_Kaggle.ipynb) used to finish the experiment. See the [README workflow](../README.md#training-notebooks) for input preparation, execution and output preservation.
+For saved-run inspection, `scripts.inspect_full_run` remains available without a separate notebook. The two retained notebooks are the Colab training launcher and [the Kaggle resume launcher](../notebooks/Resume_MuRIL_Kaggle.ipynb) used to finish the experiment. See the [notebook workflow](notebook-workflow.md) for input preparation, execution and output preservation.
 
 Clearing Drive space does not restore GPU quota. Resume with the updated training
 notebook when Colab grants GPU access again (no guaranteed reset time), or use
