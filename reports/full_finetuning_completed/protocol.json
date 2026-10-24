@@ -1,0 +1,140 @@
+{
+  "seed": 42,
+  "folds": 5,
+  "inner_folds": 5,
+  "learning_rates": [
+    2e-06,
+    5e-06,
+    1e-05
+  ],
+  "max_epochs": 5,
+  "patience": 2,
+  "batch_size": 16,
+  "label_smoothing": 0.05,
+  "head_learning_rate": 0.0001,
+  "weight_decay": 0.01,
+  "warmup_fraction": 0.1,
+  "max_tokens": 128,
+  "hybrid_candidates": [
+    {
+      "C": 10.0,
+      "weight": 1.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 1.0,
+      "weight": 0.5,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 1.0,
+      "weight": 1.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 1.0,
+      "weight": 2.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 5.0,
+      "weight": 0.5,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 5.0,
+      "weight": 1.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 5.0,
+      "weight": 2.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 20.0,
+      "weight": 0.5,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 20.0,
+      "weight": 1.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 20.0,
+      "weight": 2.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 10.0,
+      "weight": 1.0,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "min_df": 3
+    },
+    {
+      "C": 10.0,
+      "weight": 1.0,
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 2
+    }
+  ],
+  "selection_metric": "mean_outer_fold_macro_f1",
+  "fine_tuning": "All embedding parameters and all 12 transformer layers; unused pooler excluded",
+  "early_stopping": "Inner grouped validation macro-F1 of temporary supervised head; hybrid fits all outer-fit examples",
+  "final_epoch_rule": "Median of selected learning-rate inner best epochs, then train on all original train",
+  "device": "cuda",
+  "model_revision": "afd9f36c7923d54e97903922ff1b260d091d202f",
+  "dataset_sha256": {
+    "task1_binary": "4ea5aaed2d00034913a23833f626ef283c05157148aec66dd33859688e4524cc",
+    "task2_attribution": "d6cd7ae2f1626b5a25f5144da88e98a83188d40c78e90270a2af42f2c384678a",
+    "task3_codemix": "e801c792a136f0159f646de86849b6b4d3e024443c0c2883a9479dd2f87f66d5"
+  },
+  "script_sha256": "fb184deb5e3dea26da467a5708701ea52166f1cc4c997e4c57647e2992205a72"
+}

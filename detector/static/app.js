@@ -84,8 +84,12 @@ function showSegments() {
     const verdict = document.createElement('strong'); verdict.textContent = `${segment.label === 'ai' ? 'AI-leaning' : 'Human-leaning'} · ${(segment.ai_score * 100).toFixed(1)}% AI score`;
     head.append(number, verdict);
     const text = document.createElement('p'); text.textContent = segment.text;
-    const meta = document.createElement('small'); meta.textContent = `${segment.word_count} words · ${segment.token_count} model tokens`;
-    card.append(head, text, meta); $('segment-list').append(card);
+    const meta = document.createElement('small'); meta.textContent = `${segment.word_count} normalized words · ${segment.token_count} model tokens`;
+    const modelDetails = document.createElement('details'); modelDetails.className = 'model-input';
+    const modelSummary = document.createElement('summary'); modelSummary.textContent = 'Show normalized model input';
+    const modelText = document.createElement('p'); modelText.textContent = segment.model_text || segment.text;
+    modelDetails.append(modelSummary, modelText);
+    card.append(head, text, meta, modelDetails); $('segment-list').append(card);
   }
   visibleSegments = end;
   $('more-segments').hidden = end === lastReport.segments.length;
@@ -95,10 +99,15 @@ $('more-segments').addEventListener('click', showSegments);
 function showResult(data, elapsed) {
   lastReport = data;
   $('empty-result').hidden = true; $('result').hidden = false;
-  $('prediction').textContent = data.label === 'ai' ? 'Likely AI-generated' : 'Likely human-written';
-  $('prediction-note').textContent = data.uncertain ? 'Mixed signals. The overall scores are close; interpret this result cautiously.' : data.chunk_count > 1 ? 'Overall signal across the document. Inspect individual segments below for differences.' : 'The patterns in this passage lean toward this class. This is an estimate, not verification.';
-  $('confidence-tag').textContent = data.uncertain ? 'Uncertain signal' : 'Analysis complete';
-  $('confidence').textContent = `${(data.score * 100).toFixed(1)}% top score`;
+  const documentResult = data.assessment === 'unvalidated_document';
+  $('prediction').textContent = documentResult ? 'Authorship inconclusive' : data.label === 'ai' ? 'AI-leaning model signal' : 'Human-leaning model signal';
+  $('prediction-note').textContent = documentResult
+    ? `The model leans ${data.label === 'ai' ? 'AI' : 'human'}, but document-level authorship accuracy has not been validated. Even a high score can be wrong.`
+    : data.model_uncertain ? 'The model scores are close. Neither authorship nor generator identity is established.'
+    : 'This is a learned pattern match, not a verified origin or probability of authorship.';
+  $('confidence-tag').textContent = documentResult ? 'Document result unvalidated' : 'Model signal only';
+  $('confidence').textContent = 'Not authorship confidence';
+  $('extracted-text').textContent = data.source_text || '';
   $('result-words').textContent = data.word_count.toLocaleString();
   $('result-segments').textContent = data.chunk_count.toLocaleString();
   $('result-time').textContent = elapsed < 60 ? `${elapsed.toFixed(1)}s` : `${(elapsed / 60).toFixed(1)}m`;
@@ -110,12 +119,19 @@ function showResult(data, elapsed) {
     bars('family-bars', data.family.scores);
   }
   $('warnings').replaceChildren(...data.warnings.map(w => { const li = document.createElement('li'); li.textContent = w; return li; }));
-  $('result-meta').textContent = `${data.chunk_count > 1 ? 'Word-weighted segment scores' : 'Single-segment result'} · ${data.model_version}`;
+  $('result-meta').textContent = `${data.chunk_count > 1 ? 'Word-weighted segment scores' : 'Single-segment result'} · ${data.model_version} · ${data.encoder_variant}`;
   $('segments-section').hidden = false;
   $('segment-summary').textContent = `${data.ai_segments} of ${data.chunk_count} segments lean AI`;
   $('segment-list').replaceChildren(); visibleSegments = 0; showSegments();
   if (matchMedia('(max-width:760px)').matches) $('result').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth', block: 'start'});
 }
+$('edit-source').addEventListener('click', () => {
+  if (!lastReport || working) return;
+  const source = lastReport.source_text;
+  setMode('paste');
+  $('text').value = source;
+  count(); clearResult(); $('text').focus();
+});
 $('download-report').addEventListener('click', () => {
   if (!lastReport) return;
   const url = URL.createObjectURL(new Blob([JSON.stringify(lastReport, null, 2)], {type: 'application/json'}));

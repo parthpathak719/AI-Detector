@@ -85,3 +85,39 @@ def test_task_specific_encoder_is_used_for_attribution():
     service.encoder.encode = encode
     service.predict('this passage has enough words for a family prediction', 'en')
     assert calls == ['task1_binary', 'task2_attribution']
+
+
+def test_segments_show_source_without_changing_normalized_model_input():
+    text = 'RT @author: Algorithm Time Space\nGBFS O(b^m) O(b^m)\nA* O(b^d) (worst case).\nThe search uses 4 cells and costs 12 units.'
+    service = detector([.993, .007])
+    result = service.predict(text, 'en')
+    assert result['segments'][0]['text'] == text
+    assert result['segments'][0]['model_text'] == clean_text(text)
+    assert 'A*' in result['segments'][0]['text']
+    assert '4 cells' in result['segments'][0]['text']
+    assert result['source_text'] == text
+    assert result['scores']['human'] == pytest.approx(.993)
+
+
+def test_high_model_score_does_not_claim_document_certainty():
+    result = detector([.993, .007]).predict('A technical assignment sentence with formulas A* O(b^m).\n' * 40, 'en')
+    assert result['assessment'] == 'unvalidated_document'
+    assert result['uncertain'] and not result['model_uncertain']
+    assert result['label'] == 'human'  # No hard-coded AI override or score cap.
+    assert result['score'] == pytest.approx(.993)
+    assert any('not the probability' in w for w in result['warnings'])
+    assert ' '.join(s['model_text'] for s in result['segments']) == clean_text(result['source_text'])
+    for segment in result['segments']:
+        assert segment['text'] == result['source_text'][segment['source_start']:segment['source_end']]
+
+
+def test_source_alignment_keeps_compounds_and_multilingual_marks():
+    from detector.text import source_excerpts
+    text = 'RT @author: आज क्\u200dष ಕನ್ನಡ தமிழ் state-space **Hello**—WORLD! 123 https://example.com 😀'
+    cleaned = clean_text(text)
+    chunks = cleaned.split()  # Exercise a split inside a normalized compound.
+    excerpts = source_excerpts(text, cleaned, chunks)
+    assert any(e['text'] == 'state-space ' or 'state-space' in e['text'] for e in excerpts)
+    assert all(e['text'] == text[e['source_start']:e['source_end']] for e in excerpts)
+    assert excerpts[0]['source_start'] == 0
+    assert excerpts[-1]['source_end'] == len(text)

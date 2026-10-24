@@ -42,3 +42,11 @@ def test_partly_scanned_pdf_reports_missing_pages():
     text, notes = extract_document('mixed.pdf', stream.getvalue())
     assert 'real readable text' in text
     assert notes and '1 PDF page(s)' in notes[0]
+
+
+def test_pdf_preserves_notation_and_reports_layout_limitations():
+    source = 'GBFS O(b^m) O(b^m). A* O(b^d). There are 4 cells and 12 actions.'
+    text, notes = extract_document('table.pdf', pdf(source))
+    assert 'A* O(b^d)' in text
+    assert '4 cells' in text
+    assert any('superscripts' in note for note in notes)

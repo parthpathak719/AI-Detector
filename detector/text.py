@@ -45,3 +45,29 @@ def validate_text(text: str, language: str) -> str:
     if count > MAX_WORDS:
         raise ValueError(f"Please use a document with up to {MAX_WORDS:,} words.")
     return cleaned
+
+
+def source_excerpts(text, cleaned, chunks):
+    """Map unchanged normalized model windows back to readable source excerpts.
+
+    A compound source token can yield multiple cleaned words. If a window splits
+    that token, adjacent excerpts share it rather than displaying a broken word.
+    No source-to-model alignment is guessed when normalization differs.
+    """
+    prefix = re.match(r'^\s*RT\s*:?\s+', text, flags=re.I)
+    offset = prefix.end() if prefix else 0
+    words, spans = [], []
+    for match in re.finditer(r'\S+', text[offset:]):
+        normalized = clean_text(match.group()).split()
+        words.extend(normalized)
+        spans.extend([(offset + match.start(), offset + match.end())] * len(normalized))
+    if ' '.join(words) != cleaned or ' '.join(chunks) != cleaned:
+        raise ValueError('Unable to align source text with model segments. Try plain text without unusual control characters.')
+    excerpts, index = [], 0
+    for number, chunk in enumerate(chunks):
+        size = len(chunk.split())
+        start = 0 if number == 0 else spans[index][0]
+        index += size
+        end = len(text) if index == len(words) else max(spans[index - 1][1], spans[index][0])
+        excerpts.append({'text': text[start:end], 'source_start': start, 'source_end': end})
+    return excerpts
