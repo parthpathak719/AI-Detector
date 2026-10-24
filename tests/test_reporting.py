@@ -17,7 +17,10 @@ def test_multilingual_pdf_and_long_report_include_every_segment():
     pdf = render_report(ReportRequest.model_validate(payload(count=20)))
     reader = PdfReader(BytesIO(pdf))
     text = '\n'.join(page.extract_text() for page in reader.pages)
-    assert len(reader.pages) > 1
+    assert len(reader.pages) > 2
+    assert 'research' not in text.lower()
+    assert 'Segment 01' not in reader.pages[0].extract_text()
+    assert 'Segment-by-segment analysis' in reader.pages[1].extract_text()
     assert 'Segment 20' in text and 'Authorship inconclusive' in text
     # Shaped Indic clusters may add an unmapped auxiliary glyph in pypdf's
     # extraction. The rendered PDF was checked separately; remove reader C0 artifacts.
@@ -29,7 +32,7 @@ def test_multilingual_pdf_and_long_report_include_every_segment():
 def test_unsupported_glyphs_and_control_characters_do_not_break_export():
     pdf = render_report(ReportRequest.model_validate(payload('hello 😀\x00 <b>literal</b> ' + 'x'*2000)))
     text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(pdf)).pages)
-    assert 'Font coverage note' in text and '<b>literal</b>' in text
+    assert 'Font coverage' in text and '<b>literal</b>' in text
 
 
 def test_report_limits_and_nonfinite_scores_are_rejected():

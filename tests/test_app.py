@@ -152,7 +152,7 @@ def test_pdf_report_download_contains_results_and_source(client):
     assert response.content.startswith(b'%PDF-')
     text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(response.content)).pages)
     assert 'example.txt' in text and 'bookshop' in text and 'Segment 01' in text
-    assert 'not authorship confidence' in text
+    assert 'not calibrated authorship probabilities' in text
 
 
 def test_pdf_export_rejects_incomplete_report_and_stale_assets_revalidate(client):

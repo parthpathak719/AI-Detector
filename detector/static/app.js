@@ -1,13 +1,12 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
-let mode = 'paste', working = false, ready = false, exporting = false, selectedFile = null, lastReport = null, visibleSegments = 0;
+let mode = 'paste', working = false, ready = false, exporting = false, selectedFile = null, lastReport = null;
 const sample = 'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.';
 function clearResult() {
   lastReport = null;
   $('result').hidden = true;
   $('empty-result').hidden = false;
-  $('segments-section').hidden = true;
   $('export-error').hidden = true;
 }
 function setMode(next) {
@@ -76,23 +75,6 @@ function bars(target, scores) {
     row.append(label, bar); $(target).append(row);
   }
 }
-function showSegments() {
-  const end = Math.min(visibleSegments + 12, lastReport.segments.length);
-  for (const segment of lastReport.segments.slice(visibleSegments, end)) {
-    const card = document.createElement('details'); card.open = segment.index === 1; card.className = `segment ${segment.label}`;
-    const head = document.createElement('summary'); head.className = 'segment-head';
-    const number = document.createElement('span'); number.textContent = `SEGMENT ${String(segment.index).padStart(2, '0')}`;
-    const verdict = document.createElement('strong'); verdict.textContent = `${segment.label === 'ai' ? 'AI-leaning' : 'Human-leaning'} · ${(segment.ai_score * 100).toFixed(1)}% AI score`;
-    head.append(number, verdict);
-    const text = document.createElement('p'); text.textContent = segment.text;
-    const meta = document.createElement('small'); meta.textContent = `${segment.word_count} normalized words · ${segment.token_count} model tokens`;
-    card.append(head, text, meta); $('segment-list').append(card);
-  }
-  visibleSegments = end;
-  $('more-segments').hidden = end === lastReport.segments.length;
-  $('more-segments').textContent = `Show more segments (${end} / ${lastReport.segments.length})`;
-}
-$('more-segments').addEventListener('click', showSegments);
 function showResult(data, elapsed) {
   lastReport = {...data, source_name: mode === 'upload' ? selectedFile.name.slice(0, 240) : 'Pasted text'};
   $('empty-result').hidden = true; $('result').hidden = false;
@@ -117,9 +99,6 @@ function showResult(data, elapsed) {
   }
   $('warnings').replaceChildren(...data.warnings.map(w => { const li = document.createElement('li'); li.textContent = w; return li; }));
   $('result-meta').textContent = `${data.chunk_count > 1 ? 'Word-weighted segment scores' : 'Single-segment result'} · ${data.model_version} · ${data.encoder_variant}`;
-  $('segments-section').hidden = false;
-  $('segment-summary').textContent = `${data.ai_segments} of ${data.chunk_count} segments lean AI`;
-  $('segment-list').replaceChildren(); visibleSegments = 0; showSegments();
   if (matchMedia('(max-width:760px)').matches) $('result').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth', block: 'start'});
 }
 $('download-report').addEventListener('click', async () => {
