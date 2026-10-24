@@ -3,7 +3,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 from detector.embedding import MuRIL
-from detector.text import validate_text
+from detector.text import validate_text, source_excerpts
 from scripts.verify_artifacts import verify
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +33,7 @@ class Detector:
     def predict(self, text, language):
         cleaned = validate_text(text, language)
         chunks = self.encoder.chunks(cleaned)
+        excerpts = source_excerpts(text, cleaned, chunks)
         task = "task3_codemix" if language.endswith("_en") else "task1_binary"
         embeddings = self.encoder.encode(chunks, task=task)
         bundle = self.artifacts[task]
@@ -51,6 +52,11 @@ class Detector:
             warnings.append("This is a short passage, so there are fewer clues for the detector.")
         if float(probs.max()) < 0.65:
             warnings.append("The detector's scores are close. Treat this result as uncertain.")
+        model_uncertain = bool(probs.max() < 0.65)
+        # Scores were calibrated on short-text validation data, not documents.
+        # Preserve scores and model labels; do not invent a confidence cap.
+        assessment = "unvalidated_document" if len(chunks) > 1 else "model_signal_only"
+        warnings.insert(0, "Model scores are not the probability that the author is human or AI. A high human score can still be an AI-generated false negative.")
         family = None
         eligible = [i for i, outcome in enumerate(labels) if outcome == "ai" and word_counts[i] >= 8]
         if label == "ai":
@@ -72,14 +78,16 @@ class Detector:
                           "uncertain": bool(fp.max() < 0.60), "analyzed_segments": len(eligible),
                           "scores": dict(zip(families, map(float, fp)))}
                 warnings.append("Family scores compare Gemini, Muse and Sarvam only; they cannot identify an unknown generator.")
-        return {"label": label, "score": float(probs.max()), "uncertain": bool(probs.max() < 0.65),
+        return {"label": label, "score": float(probs.max()), "uncertain": bool(model_uncertain or len(chunks) > 1),
+                "model_uncertain": model_uncertain, "assessment": assessment,
+                "source_text": text,
                 "scores": dict(zip(names, map(float, probs))),
                 "family": family, "language": language, "task": task,
                 "word_count": len(cleaned.split()), "token_count": sum(t - 2 for t in tokens),
                 "chunk_count": len(chunks), "ai_segments": labels.count("ai"),
                 "aggregation": "word_weighted_mean" if len(chunks) > 1 else "single_segment",
-                "segments": [{"index": i + 1, "text": c, "word_count": int(word_counts[i]),
+                "segments": [{"index": i + 1, **excerpts[i], "model_text": c, "word_count": int(word_counts[i]),
                               "token_count": tokens[i], "label": labels[i],
                               "ai_score": float(chunk_probs[i, ai_index])} for i, c in enumerate(chunks)],
-                "warnings": warnings, "model_version": "muril-char / document-v2",
+                "warnings": warnings, "model_version": "muril-char / document-v3",
                 "encoder_variant": "fully fine-tuned" if bundle["metadata"].get("encoder", {}).get("fine_tuned_full") else "fine-tuned final block" if bundle["metadata"].get("encoder", {}).get("fine_tuned_last_layer") else "frozen"}

@@ -1,3 +1,5 @@
+> Historical final-block experiment. For the completed full-encoder results, see [full fine-tuning](full-finetuning.md).
+
 # MuRIL fine-tuning experiment
 
 This experiment updates actual MuRIL weights: the final transformer block (encoder layer 11) and a temporary supervised linear head. Token embeddings and encoder layers 0–10 remain frozen. The temporary head is discarded; the served classifier still uses MuRIL embeddings plus character n-grams.

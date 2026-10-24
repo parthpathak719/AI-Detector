@@ -11,6 +11,7 @@ from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
 import olefile
+import pdfplumber
 from pypdf import PdfReader
 from detector.text import MAX_CHARS
 
@@ -30,22 +31,28 @@ def pdf_text(content):
         raise ValueError("Password-protected PDFs are not supported. Upload an unlocked copy.")
     if len(reader.pages) > 300:
         raise ValueError("Please upload a PDF with no more than 300 pages.")
-    pages, size, empty = [], 0, 0
+    # Validate inflated content before asking the spacing-aware parser to work.
     for page in reader.pages:
-        # Guard inflated streams before text extraction allocates its working data.
         contents = page.get_contents()
         if contents is not None and len(contents.get_data()) > 8 * 1024 * 1024:
             raise ValueError("A PDF page is too complex to extract. Export it as a simpler PDF or text file.")
-        text = page.extract_text() or ""
-        empty += not bool(text.strip())
-        size += len(text) + 1
-        if size > MAX_CHARS:
-            raise ValueError(f"The PDF exceeds {MAX_CHARS:,} extracted characters. Please split it into smaller documents.")
-        pages.append(text)
+    pages, size, empty = [], 0, 0
+    with pdfplumber.open(BytesIO(content)) as document:
+        for page in document.pages:
+            # Content-stream flow preserves the two-column reading order in
+            # academic PDFs; geometric spacing separates adjacent font runs.
+            text = page.extract_text(use_text_flow=True, x_tolerance=1, y_tolerance=3) or ""
+            empty += not bool(text.strip())
+            size += len(text) + 2
+            if size > MAX_CHARS:
+                raise ValueError(f"The PDF exceeds {MAX_CHARS:,} extracted characters. Please split it into smaller documents.")
+            pages.append(text)
+            page.close()
     if not any(p.strip() for p in pages):
         raise ValueError("This PDF has no extractable text. For a scanned PDF, run OCR first and upload the searchable PDF or text.")
     notes = [f"{empty} PDF page(s) contained no extractable text; images and scans were not analyzed."] if empty else []
-    return "\n".join(pages), notes
+    notes.append("PDF extraction can flatten tables, diagrams, superscripts and subscripts. Review the extracted text; use the original PDF to check mathematical notation.")
+    return "\n\n".join(pages), notes
 
 
 def docx_text(content):

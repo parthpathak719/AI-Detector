@@ -1,0 +1,14 @@
+{
+  "task1_binary": {
+    "examples": 4,
+    "max_score_error": 8.729268443641303e-07
+  },
+  "task2_attribution": {
+    "examples": 7,
+    "max_score_error": 7.371626236096773e-07
+  },
+  "task3_codemix": {
+    "examples": 3,
+    "max_score_error": 3.317555008486295e-09
+  }
+}

@@ -9,3 +9,34 @@ data/
 !.env.example
 node_modules/
 test-results/
+
+# Downloaded bundles and large encoder/optimizer checkpoints (keep locally).
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.safetensors
+*.pt
+*.pth
+*.bin
+
+# Local installs, experiment outputs, transfer bundles and backups.
+.venv*/
+.colab-*/
+.kaggle-*/
+/artifacts-backup*/
+/artifacts-before-*/
+/detector-backup*/
+/muril-run/
+/run/
+/checkpoints/
+/selected_artifacts/
+/muril-resume*/
+/attachments/
+/checkpoint-bin-inventory.csv
+/document-fix-manifest.json
+/DOCUMENT_FIX_README.txt
+
+# In-progress local full-encoder folds; completed summaries are curated separately.
+/reports/full_finetuning/task*/lr_*_fold*.json
+/reports/full_finetuning/task*/lr_*_fold*.npz

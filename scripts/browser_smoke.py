@@ -21,7 +21,7 @@ async def main():
         await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#result:not([hidden])").wait_for(timeout=60000)
         result = await page.locator("#prediction").inner_text()
-        assert result in ("Likely AI-generated", "Likely human-written")
+        assert result in ("AI-leaning model signal", "Human-leaning model signal")
         await page.screenshot(path=str(out / "result.png"), full_page=True)
         await page.get_by_role("tab", name="Upload a file").click()
         await page.locator("#file").set_input_files({"name": "passage.txt", "mimeType": "text/plain", "buffer": passage.encode()})

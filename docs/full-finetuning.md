@@ -1,8 +1,8 @@
 # Full MuRIL fine-tuning experiment
 
-This is a new **all-layer** experiment. It is separate from the completed final-block experiment in [finetuning-results.md](finetuning-results.md). Do not treat that older experiment's numbers as results of this run.
+The all-layer experiment completed on **24 October 2026**, starting on Colab and resuming on Kaggle with matching Python 3.12.11, PyTorch 2.6.0/cu124, NumPy 2.2.6, SciPy 1.14.1 and scikit-learn 1.6.1 environments. All 45 fine-tuning folds, 15 frozen folds, final refits and serving-parity checks finished. The [completed reports](../reports/full_finetuning_completed/) are separate from historical CPU preparation in `reports/full_finetuning/` and the [final-block experiment](finetuning-results.md).
 
-The run was launched on 22 October 2026 on the cloud CPU. The committed protocol specifies the planned experiment; fold files record completed work. **No full-fine-tuning improvement or new production winner has been established yet.** Read the live local status command below to distinguish pending work from completed results.
+The chosen learning rates were `1e-5`, `1e-5`, and `5e-6`; final encoder training used 3, 5, and 4 epochs for Tasks 1, 2, and 3. Selected test accuracies were 93.87%, 86.43%, and 95.74%. This is a bounded search, not proof that further tuning cannot help. The full weights stay outside Git; the tracked classifiers remain a frozen baseline for fresh checkouts.
 
 ## Scope and evaluation
 
@@ -21,13 +21,13 @@ The run was launched on 22 October 2026 on the cloud CPU. The committed protocol
 
 [Open the prepared notebook](https://colab.research.google.com/github/parthpathak719/AI-Detector/blob/main/notebooks/Full_MuRIL_Finetuning.ipynb), select **Runtime → Change runtime type → T4 GPU**, then **Run all** and authorize Google Drive. A connected Google account and an available Colab GPU are required; the cloud coding environment cannot allocate a GPU through the notebook link alone.
 
-The notebook pins a source commit and uses uv to provision Python 3.12 independently of Colab’s system Python/ensurepip, then installs CUDA-enabled PyTorch 2.6 in a separate virtual environment. It imports the original supplied archive, recomputes all 15 frozen baseline folds under the same SciPy version, and runs the full GPU search independently of the ongoing CPU fine-tuning run. The notebook uses SciPy 1.14.1 as a compatibility workaround for the observed SciPy 1.15.3 L-BFGS segmentation fault during head initialization. A real-data optimizer preflight runs first. All 15 head initializations and three hybrid-fit/calibration checks passed locally; GPU execution of the workaround still requires Colab. CPU fine-tuned checkpoints are not mixed with GPU runs. No completed GPU result is claimed before execution.
+The notebook pins a source commit and uses uv to provision Python 3.12 independently of Colab’s system Python/ensurepip, then installs CUDA-enabled PyTorch 2.6 in a separate virtual environment. It imports the original supplied archive, recomputes all 15 frozen baseline folds under the same SciPy version, and runs or resumes the full GPU search without mixing CPU checkpoints. The notebook uses SciPy 1.14.1 as a compatibility workaround for the observed SciPy 1.15.3 L-BFGS segmentation fault during head initialization. A real-data optimizer preflight runs first. All 15 head initializations and three hybrid-fit/calibration checks passed locally; the completed GPU run also used this workaround. CPU fine-tuned checkpoints are not mixed with GPU runs. Completed GPU reports are linked above.
 
 Completed fold reports, logs and final models persist in `MyDrive/AI-Detector/full-muril-gpu-v2-scipy114`. Epoch checkpoints stay on local disk to prevent Drive Bin growth. Keep several GB free for final models and exports, in addition to any legacy checkpoints. After a Colab runtime reset, reconnect a GPU and run all cells again using the same run folder; the unfinished fold/refit may need to replay. Use only one Colab runtime per run folder. GPU availability/session duration are controlled by Colab; the notebook does not bypass their limits.
 
 Once all comparisons, refits and application-loader parity checks pass, the notebook exports `results.zip` and `selected_models.zip` to Drive. The small results ZIP can be shared for review. The model ZIP contains the complete selected `artifacts/` directory, including full encoder checkpoints only where selected, and excludes private parity passages and optimizer states. Back up your local artifacts, extract the model ZIP, verify checksums and restart the app using the notebook's Windows instructions.
 
-The Colab launch requires user authentication. The CPU run can continue/resume here while the notebook awaits a GPU session. Workflow tests and baseline provenance checks run in this environment; actual CUDA execution requires Colab and has not been verified here.
+The Colab launch requires user authentication. The completed CUDA experiment ran in user-authorized Colab/Kaggle sessions; local development tests alone do not establish GPU execution. Frequent epoch snapshots remain off Drive to avoid Bin accumulation. Kaggle output must be saved as a version to persist beyond a session.
 
 ## Run and resume
 
@@ -53,7 +53,7 @@ Each first training batch audits nonzero gradients in the word embeddings and ev
 - `.cache/full_finetuning/`: private resumable checkpoints and gradient audits.
 - `.cache/full_finetuning/selected_artifacts/`: eventual serving bundles and full checkpoints, after refitting. The app supports both frozen and full-encoder artifacts.
 
-The run **stages** selected models and verifies them. It does not automatically overwrite the working application or publish large checkpoints to Git. After completion, review the final results and serving checks, then install the selected bundles as a complete set and restart the app. A full MuRIL checkpoint is roughly 950 MB, so any selected full models need an appropriate download/release channel rather than ordinary Git blobs. Current production models remain the previously validated frozen hybrids until this step is completed.
+The run **stages** selected models and verifies them. It does not automatically overwrite the working application or publish large checkpoints to Git. After completion, review the final results and serving checks, then install the selected bundles as a complete set and restart the app. A full MuRIL checkpoint is roughly 950 MB, so any selected full models need an appropriate download/release channel rather than ordinary Git blobs. A fresh checkout uses the tracked frozen baseline; installing the selected export enables the three full fine-tuned encoders.
 
 ## Drive storage and interrupted Colab runs
 
@@ -81,7 +81,7 @@ empty unrelated files from the Bin blindly; permanent deletion is irreversible.
 
 Clearing Drive space does not restore GPU quota. Resume with the updated training
 notebook when Colab grants GPU access again (no guaranteed reset time), or use
-paid Colab compute if desired. Another GPU machine can run the same experiment
+another available free GPU service. Another GPU machine can run the same experiment
 with the same run directory and dependencies after transferring the saved run.
 Do not run two machines against one run folder simultaneously. Final model ZIPs
 also duplicate selected weights, so export them once when needed.
