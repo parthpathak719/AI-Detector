@@ -75,8 +75,8 @@ ZIP archives, full encoder weights, optimizer snapshots, local experiment output
 - Up to **100,000 characters / 20,000 cleaned words**, **10 MB** per upload, and **300 PDF pages**.
 - Searchable PDF extraction uses spacing-aware text flow. Tables, diagrams, superscripts and subscripts can still flatten; scanned PDFs require external OCR. Word extraction covers the main body and tables, with format-specific omissions reported.
 - Every cleaned word is processed in windows of at most 128 MuRIL tokens. Scores are averaged by cleaned word count; they are not the percentage of text written by AI.
-- Segment cards show extracted **source text**, preserving punctuation, case and numbers. Source excerpts can overlap at a split compound word while model words are counted once.
-- Segment cards expand individually; the unused full-text review/edit controls have been removed. Ordinary text is 16–17 px, with helper labels at least 14 px.
+- PDF segment sections show extracted **source text**, preserving punctuation, case and numbers. Source excerpts can overlap at a split compound word while model words are counted once.
+- The interface shows the overall result; segment-by-segment analysis is included only in the PDF report. Ordinary text is 16–17 px, with helper labels at least 14 px.
 - JSONL accepts one JSON string or an object with a string `text` (or `content`) field per nonblank line. Records are combined in file order into **one document analysis**, not independent predictions. Labels and metadata are excluded. Invalid records report their line number.
 - **Download PDF report** exports the summary, model scores, extraction notes and all source segments as a paginated PDF. Embedded Noto fonts support English, Hindi, Tamil and Kannada; unsupported characters are marked with a replacement symbol.
 - Multi-segment reports say **Authorship inconclusive** because document-level accuracy has not been validated. Their underlying model scores remain visible and unchanged. Short-text headings describe model signals, not verified origin.

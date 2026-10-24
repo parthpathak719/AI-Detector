@@ -39,7 +39,7 @@ async def main():
         await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#result:not([hidden])").wait_for(timeout=120000)
         assert int(await page.locator("#result-segments").inner_text()) > 1
-        assert await page.locator(".segment").count() > 1
+        assert await page.locator(".segment").count() == 0
         async with page.expect_download() as download_info:
             await page.get_by_role("button", name="Download PDF report").click()
         download = await download_info.value
@@ -48,9 +48,13 @@ async def main():
         assert (out / 'origin-analysis.pdf').read_bytes().startswith(b'%PDF-')
         assert await page.locator('#edit-source').count() == 0
         assert await page.locator('#extracted-text').count() == 0
-        assert await page.locator('.segment[open]').count() == 1
-        await page.locator('.segment summary').nth(1).click()
-        assert await page.locator('.segment').nth(1).get_attribute('open') is not None
+        assert await page.locator('#segment-list').count() == 0
+        assert 'research' not in (await page.locator('body').inner_text()).lower()
+        assert await page.get_by_text('JSONL format', exact=True).count() == 0
+        from io import BytesIO
+        from pypdf import PdfReader
+        report_text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO((out / 'origin-analysis.pdf').read_bytes())).pages)
+        assert 'Segment 01' in report_text and 'Segment 09' in report_text
         await page.screenshot(path=str(out / "document-result.png"), full_page=True)
         import json
         jsonl = json.dumps({'text': passage, 'label': 'ai'}).encode()
