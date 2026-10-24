@@ -1,5 +1,6 @@
-"""Native Windows/Linux setup. Run with Python 3.12; activation is unnecessary."""
+"""Native Windows/Linux/Apple Silicon macOS setup. Run with Python 3.12; activation is unnecessary."""
 import os
+import platform
 from pathlib import Path
 import subprocess
 import sys
@@ -14,6 +15,10 @@ def main():
             "Setup requires Python 3.12. On Windows run: py -3.12 scripts/setup.py. "
             "Install Python 3.12 if the launcher cannot find it."
         )
+    if sys.platform == "darwin" and platform.machine() != "arm64":
+        raise SystemExit("The pinned PyTorch 2.6 environment requires Apple Silicon on macOS. "
+                         "Use native arm64 Python on Apple Silicon, or Linux in a VM on Intel Macs. "
+                         "See README.md; do not silently downgrade trained-model dependencies.")
     environment = ROOT / ".venv"
     python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if environment.exists() and not python.is_file():
@@ -31,8 +36,11 @@ def main():
         raise SystemExit("The existing .venv is not Python 3.12. Rename it, then rerun setup.")
     env = os.environ.copy()
     env["HF_HUB_DISABLE_XET"] = "1"
+    torch_install = ["pip", "install", "torch==2.6.0"]
+    if sys.platform != "darwin":
+        torch_install += ["--index-url", "https://download.pytorch.org/whl/cpu"]
     commands = [
-        ["pip", "install", "torch==2.6.0", "--index-url", "https://download.pytorch.org/whl/cpu"],
+        torch_install,
         ["pip", "install", "-r", "requirements.lock"],
         ["scripts.download_muril"],
         ["scripts.verify_artifacts"],

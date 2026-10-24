@@ -1,6 +1,7 @@
 """Detect incomplete or changed model downloads before deserializing artifacts."""
 import hashlib
 import json
+import os
 from pathlib import Path
 
 
@@ -15,5 +16,5 @@ def verify(root):
 
 
 if __name__ == "__main__":
-    verify(Path(__file__).resolve().parents[1] / "artifacts")
+    verify(Path(os.environ.get("ARTIFACT_DIR", Path(__file__).resolve().parents[1] / "artifacts")))
     print("All model artifact checksums verified.")
