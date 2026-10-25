@@ -7,6 +7,7 @@ from detector.text import validate_text, source_excerpts
 from scripts.verify_artifacts import verify, resolve_artifact_dir
 
 ROOT = Path(__file__).resolve().parents[1]
+FAMILY_MIN_SCORE = 0.60  # Existing attribution uncertainty threshold; not an open-set detector.
 TASKS = ("task1_binary", "task2_attribution", "task3_codemix")
 
 
@@ -77,6 +78,8 @@ class Detector:
         eligible = [i for i, outcome in enumerate(labels) if outcome == "ai" and word_counts[i] >= 8]
         if label == "ai":
             if not eligible:
+                family = {"label": "unknown", "score": None, "uncertain": True,
+                          "reason": "insufficient_text", "analyzed_segments": 0, "scores": {}}
                 warnings.append("No AI-leaning segment contains the 8 words needed for family attribution.")
             else:
                 f = self.artifacts["task2_attribution"]
@@ -96,8 +99,11 @@ class Detector:
                 family_probs = f["model"].predict_proba([chunks[i] for i in eligible], family_embeddings)
                 fp = np.average(family_probs, axis=0, weights=word_counts[eligible] * chunk_probs[eligible, ai_index])
                 families = f["metadata"]["classes"]
-                family = {"label": families[int(fp.argmax())], "score": float(fp.max()),
-                          "uncertain": bool(fp.max() < 0.60), "analyzed_segments": len(eligible),
+                uncertain = bool(fp.max() < FAMILY_MIN_SCORE)
+                family = {"label": "unknown" if uncertain else families[int(fp.argmax())],
+                          "score": None if uncertain else float(fp.max()),
+                          "reason": "low_score" if uncertain else "matched",
+                          "uncertain": uncertain, "analyzed_segments": len(eligible),
                           "scores": dict(zip(families, map(float, fp)))}
                 warnings.append("Family scores compare Gemini, Muse and Sarvam only; they cannot identify an unknown generator.")
         check_cancelled()

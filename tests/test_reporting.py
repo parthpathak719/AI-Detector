@@ -42,3 +42,15 @@ def test_report_limits_and_nonfinite_scores_are_rejected():
     with pytest.raises(ValidationError): ReportRequest.model_validate(data)
     data=payload('x'*100000, count=11)
     with pytest.raises(ValidationError): ReportRequest.model_validate(data)
+
+
+@pytest.mark.parametrize('reason,scores', [('low_score',{'gemini':.3,'muse':.5,'sarvam':.2}),('insufficient_text',{})])
+def test_unknown_family_pdf(reason,scores):
+    data=payload()
+    data['label']='ai'
+    data['family']={'label':'unknown','reason':reason,'scores':scores}
+    pdf=render_report(ReportRequest.model_validate(data))
+    text='\n'.join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages)
+    assert 'Unknown / no reliable family match' in text
+    assert 'AI-leaning model signal' in text
+    assert 'Closest trained family:' not in text
