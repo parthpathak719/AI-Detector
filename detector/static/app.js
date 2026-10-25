@@ -2,17 +2,61 @@
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
 let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false, cancelRequested=false, activeJobCount=0;
-const examples = [
-  'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.',
-  'The rain started just as we reached the station. We waited beneath the old clock, sharing a packet of warm roasted peanuts.',
-  'My grandmother keeps a small garden behind her kitchen. Every morning she checks the tomato plants and waters the pots before making tea.',
-  'The new science museum has a room where visitors can build simple machines. I spent an hour testing bridges made from paper and tape.',
-  'We tried making vegetable soup from whatever was left in the fridge. A little lemon and fresh coriander made the whole kitchen smell bright.',
-  'Our school band practiced in the auditorium after classes. The drummer kept losing the beat, but by sunset everyone was playing together.',
-  'The trail followed a quiet stream through the hills. We stopped at a wooden bridge to watch leaves drift slowly beneath our feet.',
-  'A tiny repair shop opened beside the market last month. The owner fixed my grandfather’s radio and showed me how its tuning dial works.'
-];
-let exampleIndex=-1;
+const examplesByLanguage = {
+  en: [
+    'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.',
+    'The rain started just as we reached the station. We waited beneath the old clock, sharing a packet of warm roasted peanuts.',
+    'My grandmother keeps a small garden behind her kitchen. Every morning she checks the tomato plants and waters the pots before making tea.',
+    'The new science museum has a room where visitors can build simple machines. I spent an hour testing bridges made from paper and tape.',
+    'We tried making vegetable soup from whatever was left in the fridge. A little lemon and fresh coriander made the whole kitchen smell bright.',
+    'Our school band practiced in the auditorium after classes. The drummer kept losing the beat, but by sunset everyone was playing together.',
+    'The trail followed a quiet stream through the hills. We stopped at a wooden bridge to watch leaves drift slowly beneath our feet.',
+    'A tiny repair shop opened beside the market last month. The owner fixed my grandfather’s radio and showed me how its tuning dial works.'
+  ],
+  hi: [
+    'सुबह की हल्की धूप खिड़की से कमरे में आई। मैंने चाय बनाई और बालकनी में रखे तुलसी के पौधों को पानी दिया। दिन की शुरुआत बहुत शांत थी।',
+    'रविवार को हम सब पास के पुराने किले देखने गए। रास्ते में बच्चों ने पेड़ों की तस्वीरें बनाईं और दादाजी ने हमें उस जगह की कहानी सुनाई।',
+    'हमारे मोहल्ले के पुस्तकालय में नई किताबें आई हैं। शाम को मैं वहाँ बैठकर कहानी पढ़ता हूँ और घर लौटते समय अपने छोटे भाई के लिए भी किताब लेता हूँ।',
+    'बारिश रुकने के बाद सड़क के किनारे छोटे छोटे पोखर चमक रहे थे। हम धीरे धीरे चलते हुए बाजार पहुँचे और गरम समोसे लेकर घर लौट आए।',
+    'विद्यालय के बगीचे में इस महीने कई रंगों के फूल खिले हैं। हर कक्षा के बच्चों ने एक पौधा चुना और उसकी देखभाल की जिम्मेदारी बाँट ली।'
+  ],
+  ta: [
+    'காலை நேரத்தில் எங்கள் வீட்டின் அருகிலுள்ள பூங்காவிற்கு நடந்துசென்றேன். அங்கே குழந்தைகள் விளையாடினார்கள், பறவைகள் மரக்கிளைகளில் அமர்ந்து இனிமையாகக் குரல் கொடுத்தன.',
+    'ஞாயிற்றுக்கிழமை நாங்கள் குடும்பத்துடன் கடற்கரைக்குச் சென்றோம். அலைகளைப் பார்த்துக்கொண்டே நடந்தோம், பிறகு அருகிலிருந்த கடையில் சூடான தேநீர் குடித்தோம்.',
+    'எங்கள் ஊர் நூலகத்தில் புதிய புத்தகங்கள் வந்துள்ளன. பள்ளி முடிந்ததும் அங்கே சென்று ஒரு கதையைப் படிப்பேன், பின்னர் நண்பர்களுடன் அதைப் பற்றி பேசுவேன்.',
+    'மழை நின்ற பிறகு தெருவெங்கும் குளிர்ந்த காற்று வீசியது. அம்மா செய்த காய்கறி சூப்பை அனைவரும் சேர்ந்து குடித்தோம், வீட்டில் நல்ல மணம் பரவியது.',
+    'பள்ளியின் அறிவியல் கண்காட்சிக்காக நாங்கள் ஒரு சிறிய நீர்வடிகட்டியை உருவாக்கினோம். மணல், கற்கள், பருத்தி ஆகியவற்றைப் பயன்படுத்தி தண்ணீரை எப்படி சுத்தம் செய்யலாம் என்று பார்த்தோம்.'
+  ],
+  kn: [
+    'ಬೆಳಿಗ್ಗೆ ನಮ್ಮ ಮನೆಯ ಹತ್ತಿರದ ಉದ್ಯಾನವನಕ್ಕೆ ನಡೆದುಕೊಂಡು ಹೋದೆ. ಅಲ್ಲಿ ಮಕ್ಕಳು ಆಟವಾಡುತ್ತಿದ್ದರು, ಮರಗಳ ಮೇಲೆ ಕುಳಿತಿದ್ದ ಹಕ್ಕಿಗಳು ಮಧುರವಾಗಿ ಕೂಗುತ್ತಿದ್ದವು.',
+    'ಭಾನುವಾರ ನಾವು ಕುಟುಂಬದೊಂದಿಗೆ ಹಳೆಯ ಕೋಟೆಯನ್ನು ನೋಡಲು ಹೋದೆವು. ದಾರಿಯಲ್ಲಿ ತಾತ ಅದರ ಇತಿಹಾಸದ ಕಥೆ ಹೇಳಿದರು, ಮಕ್ಕಳು ಗೋಡೆಗಳ ಚಿತ್ರಗಳನ್ನು ತೆಗೆದರು.',
+    'ನಮ್ಮ ಊರಿನ ಗ್ರಂಥಾಲಯಕ್ಕೆ ಹೊಸ ಪುಸ್ತಕಗಳು ಬಂದಿವೆ. ಶಾಲೆಯ ನಂತರ ಅಲ್ಲಿ ಕುಳಿತು ಕಥೆ ಓದುತ್ತೇನೆ, ಮನೆಗೆ ಹಿಂತಿರುಗಿದಾಗ ಅದನ್ನು ತಂಗಿಯೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳುತ್ತೇನೆ.',
+    'ಮಳೆ ನಿಂತ ಮೇಲೆ ರಸ್ತೆಯ ಪಕ್ಕದ ಗಿಡಗಳ ಮೇಲೆ ನೀರಿನ ಹನಿಗಳು ಹೊಳೆಯುತ್ತಿದ್ದವು. ನಾವು ನಿಧಾನವಾಗಿ ಮಾರುಕಟ್ಟೆಗೆ ನಡೆದು ತಾಜಾ ಹಣ್ಣುಗಳನ್ನು ತೆಗೆದುಕೊಂಡು ಮನೆಗೆ ಬಂದೆವು.',
+    'ಶಾಲೆಯ ವಿಜ್ಞಾನ ಪ್ರದರ್ಶನಕ್ಕಾಗಿ ನಾವು ಕಾಗದ ಮತ್ತು ಮರದ ಕಡ್ಡಿಗಳಿಂದ ಒಂದು ಸೇತುವೆ ಮಾಡಿದೆವು. ಹೆಚ್ಚು ತೂಕವನ್ನು ತಾಳುವಂತೆ ಅದರ ಆಕಾರವನ್ನು ಹಲವು ಬಾರಿ ಬದಲಾಯಿಸಿ ನೋಡಿದೆವು.'
+  ],
+  hi_en: [
+    'Kal subah main apne dost ke saath station gaya. Train late thi, isliye humne platform par chai pi aur weekend ke plans ke baare mein baat ki.',
+    'Meri nani ke ghar ke peeche ek chhota garden hai. Har Sunday hum plants ko paani dete hain aur phir fresh nimbu paani banate hain.',
+    'School ke baad hum local library gaye. Maine ek adventure story choose ki, aur mere bhai ne animals par ek interesting book li.',
+    'Aaj market mein bahut bheed thi, phir bhi humne sabzi aur fruit aaram se kharide. Ghar aakar sabne milkar dinner prepare kiya.',
+    'Hamari class ne science fair ke liye ek simple water filter banaya. Sabne apna idea share kiya, aur project dekhne ke liye parents bhi aaye.'
+  ],
+  ta_en: [
+    'Nethu evening naan friends kooda beach ku ponen. Waves romba calm ah irundhuchu, so naanga sunset paathutu nearby shop la tea kudichom.',
+    'Innaiku school mudinja apram naan library ku ponen. Oru new story book eduthen, appuram homework finish panna quiet ah konjam time irundhuchu.',
+    'Sunday morning amma kooda market ponen. Fresh vegetables vaanginom, veetukku vandhu ellarum serndhu lunch prepare pannom.',
+    'Enga class science fair ku small rainwater model create pannuchu. Each student oru idea share pannanga, teacher project pathi explain panna sonnaanga.',
+    'Bus late aana nala naanga stop la wait pannom. Friend oru funny story sonna, time fast ah pochu and finally bus vandhuduchu.'
+  ],
+  kn_en: [
+    'Ninne evening naanu friends jothe park ge hode. Aakasha tumba chennagittu, naavu bench mele kootu music keli swalpa hotthu maatadidevu.',
+    'Ivattu school mugida mele library ge hode. Ondu interesting story book tagonde, manege bandu adara bagge tangige helide.',
+    'Sunday morning naanu amma jothe market ge hode. Fresh vegetables tandvi, manege bandu ellaru seri tasty lunch prepare madidevu.',
+    'Namma class science fair ge small water filter model maditu. Prati student ondond idea helidaru, teacher ella projects nodi appreciate madidaru.',
+    'Bus barodu late aayitu, aadaroo stop alli wait madta friends jothe maatadide. Swalpa time aadmele bus bantu, naavu safe aagi manege bandevu.'
+  ]
+};
+const exampleIndexes = Object.fromEntries(Object.keys(examplesByLanguage).map(language=>[language,-1]));
 async function request(path, options) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),15*60*1000);
@@ -52,12 +96,15 @@ function count() { const text=$('text').value; $('word-count').textContent=`${te
 $('text').addEventListener('input',()=>{count();clearResult();});
 $('language').addEventListener('change',clearResult);
 $('example').addEventListener('click',()=>{
+  const selectedLanguage=$('language').value;
+  const language=examplesByLanguage[selectedLanguage]?selectedLanguage:'en';
+  const examples=examplesByLanguage[language];
   const current=$('text').value;
   for(let offset=1;offset<=examples.length;offset++){
-    const next=(exampleIndex+offset)%examples.length;
-    if(examples[next]!==current){exampleIndex=next;break;}
+    const next=(exampleIndexes[language]+offset)%examples.length;
+    if(examples[next]!==current){exampleIndexes[language]=next;break;}
   }
-  $('text').value=examples[exampleIndex];count();clearResult();$('error').hidden=true;
+  $('text').value=examples[exampleIndexes[language]];count();clearResult();$('error').hidden=true;
 });
 $('clear').addEventListener('click',()=>{$('text').value='';count();clearResult();$('error').hidden=true;$('text').focus();});
 function renderPreview() {
