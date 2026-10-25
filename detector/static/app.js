@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
-let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false;
+let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false, cancelRequested=false, activeJobCount=0;
 const sample = 'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.';
 async function request(path, options) {
   const controller=new AbortController();
@@ -160,16 +160,24 @@ function lockForm(value) {
   $('analyze-form').setAttribute('aria-busy',String(value));$('loading-note').hidden=!working;
   if(!value)renderPreview();
 }
-$('stop-batch').addEventListener('click',()=>{stopRequested=true;$('stop-batch').disabled=true;$('stop-batch').textContent='Stopping after current item…';});
+$('stop-batch').addEventListener('click',async()=>{
+  if(activeJobCount===1){
+    cancelRequested=true;$('stop-batch').disabled=true;$('stop-batch').textContent='Stopping analysis…';
+    try{await fetch('/api/cancel',{method:'POST'});}catch{}
+    return;
+  }
+  stopRequested=true;$('stop-batch').disabled=true;$('stop-batch').textContent='Stopping after current item…';
+});
 $('analyze-form').addEventListener('submit',async event=>{
   event.preventDefault();if(working||preparing||!ready)return;
   $('error').hidden=true;
   if(mode==='upload'&&!items.length)return showError('Choose files and wait for their text previews.');
   if(mode==='paste'&&!$('text').value.trim())return showError('Paste some text before analyzing.');
-  working=true;stopRequested=false;lockForm(true);clearResult();
+  working=true;stopRequested=false;cancelRequested=false;lockForm(true);clearResult();
   let jobs=mode==='upload'?items.map(i=>({...i})):[{name:'Pasted text',text:$('text').value,notes:[]}];
+  activeJobCount=jobs.length;
   const globalLanguage=$('language').value;
-  $('stop-batch').hidden=jobs.length<2;$('stop-batch').disabled=false;$('stop-batch').textContent='Stop after current item';
+  $('stop-batch').hidden=false;$('stop-batch').disabled=false;$('stop-batch').textContent=jobs.length===1?'Stop analysis':'Stop after current item';
   $('batch-results').hidden=jobs.length<2;
   let selectedIndex=-1;
   const rows=jobs.map((job,index)=>{
@@ -191,7 +199,7 @@ $('analyze-form').addEventListener('submit',async event=>{
     showResult(data,elapsed,jobs[index].name);
     $('result-source').textContent=(jobs.length>1?`Viewing item ${index+1} of ${jobs.length} · `:'')+jobs[index].name;
   }
-  let completed=0,failed=0;
+  let completed=0,failed=0,cancelled=false;
   try {
     for(let i=0;i<jobs.length;i++) {
       if(stopRequested){for(let j=i;j<jobs.length;j++){rows[j].status.textContent='Not analyzed';rows[j].action.textContent='Stopped';}break;}
@@ -206,11 +214,14 @@ $('analyze-form').addEventListener('submit',async event=>{
         row.status.textContent=`${data.label==='ai'?'AI':'Human'}-leaning · ${(data.scores.ai*100).toFixed(1)}% AI${data.family?' · '+data.family.label:''}`;
         row.view.disabled=false;row.action.textContent='View analysis →';row.view.addEventListener('click',()=>selectResult(i,data,elapsed));
         if(selectedIndex===-1)selectResult(i,data,elapsed);completed++;
-      }catch(e){failed++;row.view.classList.add('failed');row.action.textContent='Could not analyze';row.status.textContent=e.message;if(jobs.length===1)showError(e.message);}
+      }catch(e){
+        if(cancelRequested){cancelled=true;row.action.textContent='Stopped';row.status.textContent='Analysis stopped';if(jobs.length===1)showError('Analysis stopped.');break;}
+        failed++;row.view.classList.add('failed');row.action.textContent='Could not analyze';row.status.textContent=e.message;if(jobs.length===1)showError(e.message);
+      }
     }
   }finally{
-    $('batch-status').textContent=`${completed} complete · ${failed} failed${stopRequested?' · stopped':''}`;
-    working=false;lockForm(false);$('submit-label').textContent='Analyze content';$('stop-batch').hidden=true;
+    $('batch-status').textContent=`${completed} complete · ${failed} failed${stopRequested||cancelled?' · stopped':''}`;
+    working=false;activeJobCount=0;lockForm(false);$('submit-label').textContent='Analyze content';$('stop-batch').hidden=true;
   }
 });
 function showError(message){$('error').textContent=message;$('error').hidden=false;}

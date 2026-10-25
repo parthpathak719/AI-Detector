@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import joblib
 import numpy as np
-from detector.embedding import MuRIL
+from detector.embedding import AnalysisCancelled, MuRIL
 from detector.text import validate_text, source_excerpts
 from scripts.verify_artifacts import verify
 
@@ -30,16 +30,32 @@ class Detector:
                     raise ValueError("Invalid encoder artifact path")
                 self.encoder.configure_task(task, artifact_dir / layer)
 
-    def predict(self, text, language):
+    def predict(self, text, language, cancel_event=None):
+        def check_cancelled():
+            if cancel_event is not None and cancel_event.is_set():
+                raise AnalysisCancelled()
+
+        check_cancelled()
         cleaned = validate_text(text, language)
-        chunks = self.encoder.chunks(cleaned)
+        if hasattr(self.encoder, "chunks_with_counts"):
+            chunks, tokens = self.encoder.chunks_with_counts(cleaned)
+        else:
+            chunks = self.encoder.chunks(cleaned)
+            if hasattr(self.encoder, "token_counts"):
+                tokens = self.encoder.token_counts(chunks)
+            else:
+                tokens = [self.encoder.token_count(c) for c in chunks]
+        check_cancelled()
         excerpts = source_excerpts(text, cleaned, chunks)
         task = "task3_codemix" if language.endswith("_en") else "task1_binary"
-        embeddings = self.encoder.encode(chunks, task=task)
+        if cancel_event is None:
+            embeddings = self.encoder.encode(chunks, task=task)
+        else:
+            embeddings = self.encoder.encode(chunks, task=task, cancel_event=cancel_event)
+        check_cancelled()
         bundle = self.artifacts[task]
         chunk_probs = bundle["model"].predict_proba(chunks, embeddings)
         word_counts = np.array([len(c.split()) for c in chunks])
-        tokens = [self.encoder.token_count(c) for c in chunks]
         probs = np.average(chunk_probs, axis=0, weights=word_counts)
         names = bundle["metadata"]["classes"]
         ai_index = names.index("ai")
@@ -70,7 +86,13 @@ class Detector:
                 attribution_layer = (attribution_encoder.get("fine_tuned_last_layer"), attribution_encoder.get("fine_tuned_full"))
                 family_embeddings = embeddings[eligible]
                 if detection_layer != attribution_layer:
-                    family_embeddings = self.encoder.encode([chunks[i] for i in eligible], task="task2_attribution")
+                    family_texts = [chunks[i] for i in eligible]
+                    if cancel_event is None:
+                        family_embeddings = self.encoder.encode(family_texts, task="task2_attribution")
+                    else:
+                        family_embeddings = self.encoder.encode(family_texts, task="task2_attribution",
+                                                                cancel_event=cancel_event)
+                check_cancelled()
                 family_probs = f["model"].predict_proba([chunks[i] for i in eligible], family_embeddings)
                 fp = np.average(family_probs, axis=0, weights=word_counts[eligible] * chunk_probs[eligible, ai_index])
                 families = f["metadata"]["classes"]
@@ -78,6 +100,7 @@ class Detector:
                           "uncertain": bool(fp.max() < 0.60), "analyzed_segments": len(eligible),
                           "scores": dict(zip(families, map(float, fp)))}
                 warnings.append("Family scores compare Gemini, Muse and Sarvam only; they cannot identify an unknown generator.")
+        check_cancelled()
         return {"label": label, "score": float(probs.max()), "uncertain": bool(model_uncertain or len(chunks) > 1),
                 "model_uncertain": model_uncertain, "assessment": assessment,
                 "source_text": text,

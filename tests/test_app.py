@@ -52,7 +52,7 @@ def test_supported_languages(client, language, text):
     assert response.json()['task'] == ('task3_codemix' if language.endswith('_en') else 'task1_binary')
 
 
-@pytest.mark.parametrize('text,language', [('', 'en'), ('hi', 'en'), ('123 !!! 😀', 'en'), (PASSAGE, 'fr'), ('word ' * 50001, 'en'), ('a' * 500001, 'en')])
+@pytest.mark.parametrize('text,language', [('', 'en'), ('hi', 'en'), ('123 !!! 😀', 'en'), (PASSAGE, 'fr'), ('word ' * 50001, 'en'), ('a' * 500001, 'en')], ids=['empty', 'too_short', 'no_letters', 'unsupported_language', 'over_word_limit', 'over_character_limit'])
 def test_invalid_text(client, text, language):
     assert client.post('/api/analyze', json={'text': text, 'language': language}).status_code == 422
 
@@ -71,6 +71,36 @@ def test_unavailable_and_busy(client):
         assert client.post('/api/analyze', json={'text': PASSAGE, 'language': 'en'}).status_code == 503
     finally:
         app.state.detector = saved
+
+
+def test_single_analysis_can_be_cancelled(client):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from detector.embedding import AnalysisCancelled
+
+    started = Event()
+    original = app.state.detector
+
+    class WaitingDetector:
+        def predict(self, text, language, cancel_event):
+            started.set()
+            if not cancel_event.wait(timeout=5):
+                raise AssertionError('Cancellation was not signaled.')
+            raise AnalysisCancelled()
+
+    app.state.detector = WaitingDetector()
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            analysis = pool.submit(client.post, '/api/analyze', json={'text': PASSAGE, 'language': 'en'})
+            assert started.wait(timeout=5)
+            stopped = client.post('/api/cancel')
+            assert stopped.status_code == 200
+            assert stopped.json() == {'status': 'stopping'}
+            response = analysis.result(timeout=10)
+        assert response.status_code == 409
+        assert response.json()['detail'] == 'Analysis stopped.'
+    finally:
+        app.state.detector = original
 
 
 @pytest.mark.parametrize('extension', ['pdf', 'docx', 'doc'])
