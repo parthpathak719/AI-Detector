@@ -70,7 +70,7 @@ async function chooseFiles(files) {
         if(file.size>MAX_FILE)throw new Error('File exceeds 10 MB.');
         const body=new FormData();body.append('file',file);body.append('jsonl_mode',$('jsonl-mode').value);
         const data=await request('/api/preview-file',{method:'POST',body});
-        if(items.length+data.documents.length>100)throw new Error('Batch limit is 100 items; split this file into a smaller batch.');
+        if(items.length+data.documents.length>2000)throw new Error('Batch limit is 2,000 items; split this file into a smaller batch.');
         for(const doc of data.documents)items.push({...doc,name:file.name+(doc.name?' / '+doc.name:''),filename:file.name,recordName:doc.name});
       }catch(e){errors.push(`${file.name}: ${e.message}`);}
     }

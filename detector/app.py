@@ -152,9 +152,7 @@ async def preview_file(file: UploadFile = File(...), jsonl_mode: Literal['combin
             raise HTTPException(413, 'Please upload a file under 10 MB.')
         try:
             if suffix == '.jsonl' and jsonl_mode == 'independent':
-                rows = await run_in_threadpool(jsonl_records, content)
-                if len(rows) > 100:
-                    raise ValueError('Use up to 100 independent JSONL records per batch.')
+                rows = await run_in_threadpool(jsonl_records, content, independent=True)
                 documents = [dict(text=row['text'], name=f"Line {row['line']}" + (f" · ID {row['id']}" if row['id'] else ''),
                                   notes=['JSONL record analyzed independently. Labels and metadata are excluded.']) for row in rows]
             else:

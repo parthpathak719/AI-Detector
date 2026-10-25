@@ -4,8 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="An application for AI text detection and model-family attribution.">
   <title>Lexora — AI text detection</title>
-  <link rel="stylesheet" href="/static/style.css?v=9">
-  <script defer src="/static/app.js?v=9"></script>
+  <link rel="stylesheet" href="/static/style.css?v=10">
+  <script defer src="/static/app.js?v=10"></script>
 </head>
 <body>
   <header class="header">
@@ -29,7 +29,7 @@
           </div>
           <div class="input-options"><label for="language">Text language</label><select id="language" name="language"><option value="en">English</option><option value="hi">Hindi</option><option value="ta">Tamil</option><option value="kn">Kannada</option><option value="hi_en">Hinglish · Hindi + English</option><option value="ta_en">Tanglish · Tamil + English</option><option value="kn_en">Kanglish · Kannada + English</option></select></div>
           <p id="language-hint" class="helper" role="status">Used for all files and records in this batch.</p>
-          <p id="input-help" class="helper">Up to 10 files or 100 records per batch. Each document: 100,000 characters or 20,000 normalized words. Scanned PDFs need OCR before upload.</p>
+          <p id="input-help" class="helper">Up to 10 files or 2,000 records per batch. Each document or independent record: 100,000 characters or 20,000 normalized words. Scanned PDFs need OCR before upload.</p>
           <p id="error" class="error" role="alert" hidden></p><button id="submit" class="analyze-button" type="submit" disabled><span id="submit-label">Analyze content</span></button>
           <p id="loading-note" role="status" class="loading-note" hidden><span class="spinner" aria-hidden="true"></span> Analyzing items one at a time. You can stop before the next item.</p>
           <button type="button" id="stop-batch" class="secondary-button" hidden>Stop after current item</button>
