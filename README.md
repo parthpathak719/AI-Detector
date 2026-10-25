@@ -1,6 +1,6 @@
 # Lexora — AI text detection & family attribution
 
-A local web app using fine-tuned MuRIL embeddings and character n-grams to classify text as human- or AI-leaning. For AI-leaning text, it compares three model families: **Gemini, Muse and Sarvam**.
+A local web app using fine-tuned MuRIL embeddings and character n-grams to classify text as human- or AI-leaning. For AI-leaning text, it compares three model families: **Gemini, Muse and Sarvam**. Attribution shows **Unknown / no reliable family match** when the highest family score is below 60%, or there is not enough eligible text. This uses the existing uncertainty threshold; it is not a trained fourth class or validated unseen-generator detector, and never changes the human-versus-AI result.
 
 Supports English, Hindi, Tamil, Kannada, Hinglish, Tanglish and Kanglish. Paste text or upload **TXT, MD, JSONL, PDF, DOCX or DOC**, then download a PDF report with segment-by-segment analysis.
 

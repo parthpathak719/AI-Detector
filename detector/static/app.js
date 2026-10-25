@@ -180,8 +180,8 @@ function showResult(data, elapsed, sourceName = 'Pasted text') {
   bars('detection-bars', data.scores);
   $('family-section').hidden = !data.family;
   if (data.family) {
-    $('family-name').textContent = data.family.label;
-    $('family-note').textContent = data.family.uncertain ? 'Attribution is inconclusive. This is the closest of the three known families.' : `Closest known family across ${data.family.analyzed_segments} AI-leaning segment(s). Unknown generators may resemble these families.`;
+    $('family-name').textContent = data.family.label === 'unknown' ? 'Unknown / no reliable family match' : data.family.label;
+    $('family-note').textContent = data.family.label === 'unknown' ? (data.family.reason === 'insufficient_text' ? 'There is not enough eligible text for family attribution. The human-versus-AI result is unchanged.' : 'None of the three trained families reached the attribution threshold. This does not prove the text came from another generator. Scores below compare known families only.') : `Closest known family across ${data.family.analyzed_segments} AI-leaning segment(s). Unknown generators may resemble these families.`;
     bars('family-bars', data.family.scores);
   }
   $('warnings').replaceChildren(...data.warnings.map(w => { const li = document.createElement('li'); li.textContent = w; return li; }));

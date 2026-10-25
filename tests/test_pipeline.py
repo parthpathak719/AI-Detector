@@ -49,14 +49,16 @@ def test_attribution_is_conditional_and_uncertainty_is_explicit():
     ai = detector([.45, .55])
     result = ai.predict(text, 'hi_en')
     assert result['uncertain'] and result['family']['uncertain']
-    assert result['family']['label'] == 'muse'
+    assert result['family']['label'] == 'unknown'
+    assert result['label']=='ai'
+    assert result['family']['scores']['muse']==.5
     assert ai.artifacts['task1_binary']['model'].calls == 0
     assert ai.artifacts['task3_codemix']['model'].calls == 1
 
 
 def test_short_code_mixed_text_has_no_family_and_long_text_is_segmented():
     service = detector([.1, .9])
-    assert service.predict('kal main market gaya', 'hi_en')['family'] is None
+    assert service.predict('kal main market gaya', 'hi_en')['family']['reason']=='insufficient_text'
     result = service.predict('word ' * 300, 'en')
     assert result['chunk_count'] == 3
     assert result['word_count'] == 300
@@ -129,3 +131,16 @@ def test_large_source_excerpt_can_be_exported():
     result = detector([.8, .2]).predict(text, 'en')
     assert len(result['segments'][0]['text']) > 100000
     ReportRequest.model_validate(result)
+
+
+def test_family_abstention_keeps_detection_and_accepts_threshold_match():
+    service=detector([.1,.9])
+    text='this is a passage with enough words for family attribution'
+    unknown=service.predict(text,'en')
+    assert unknown['family']['label']=='unknown'
+    assert unknown['family']['score'] is None
+    service.artifacts['task2_attribution']['model']=Classifier([.2,.6,.2])
+    matched=service.predict(text,'en')
+    assert matched['family']['label']=='muse'
+    assert matched['scores']==unknown['scores']
+    assert matched['label']==unknown['label']=='ai'

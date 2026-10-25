@@ -31,6 +31,19 @@ async def main():
         result = await page.locator("#prediction").inner_text()
         assert result in ("AI-leaning model signal", "Human-leaning model signal")
         await page.screenshot(path=str(out / "result.png"), full_page=True)
+        # Exercise both abstention displays with controlled classifier outcomes.
+        original_report=await page.evaluate('({...lastReport})')
+        await page.evaluate("""data => showResult({...data,label:'ai',scores:{human:.1,ai:.9},
+          family:{label:'unknown',uncertain:true,reason:'low_score',analyzed_segments:1,
+          scores:{gemini:.3,muse:.5,sarvam:.2}}},1)""",original_report)
+        assert await page.locator('#family-name').text_content()=='Unknown / no reliable family match'
+        assert await page.locator('#prediction').inner_text()=='AI-leaning model signal'
+        assert await page.locator('#family-bars progress').count()==3
+        await page.evaluate("""data => showResult({...data,label:'ai',
+          family:{label:'unknown',uncertain:true,reason:'insufficient_text',analyzed_segments:0,scores:{}}},1)""",original_report)
+        assert 'not enough eligible text' in await page.locator('#family-note').inner_text()
+        assert await page.locator('#family-bars progress').count()==0
+        await page.evaluate('data => showResult(data,1)',original_report)
         await page.get_by_role("tab", name="Upload a file").click()
         await page.locator("#file").set_input_files({"name": "passage.txt", "mimeType": "text/plain", "buffer": passage.encode()})
         await page.get_by_role("button", name="Analyze content").click()

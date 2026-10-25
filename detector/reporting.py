@@ -27,7 +27,8 @@ class Segment(BaseModel):
 
 
 class Family(BaseModel):
-    label: Literal['gemini', 'muse', 'sarvam']
+    reason: Literal['matched', 'low_score', 'insufficient_text'] | None = None
+    label: Literal['gemini', 'muse', 'sarvam', 'unknown']
     scores: dict[Literal['gemini', 'muse', 'sarvam'], Score]
 
 
@@ -146,7 +147,14 @@ def render_report(report: ReportRequest) -> bytes:
     paragraph('Scores describe model patterns. They are not proof of authorship or the percentage of text written by AI.', 10)
     if report.family:
         heading('Family attribution')
-        paragraph('Closest trained family: ' + report.family.label.capitalize(), 12)
+        if report.family.label == 'unknown':
+            paragraph('Unknown / no reliable family match', 12)
+            paragraph('Not enough eligible text for attribution.' if report.family.reason == 'insufficient_text'
+                      else 'None of the trained families reached the attribution threshold. This does not prove an unseen generator was used.', 10)
+            if report.family.scores:
+                paragraph('Known-family comparison scores:', 10)
+        else:
+            paragraph('Closest trained family: ' + report.family.label.capitalize(), 12)
         pdf.ln(3)
         for name, value in report.family.scores.items():
             paragraph(f'{name.capitalize():<12}    {value:.1%}', 11)
