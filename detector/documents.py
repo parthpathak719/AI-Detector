@@ -138,7 +138,7 @@ def doc_text(content):
         return bounded(text), ["Legacy Word extraction covers main-body text; embedded objects, headers and footnotes are excluded."]
 
 
-def jsonl_text(content):
+def jsonl_records(content):
     """Read text records only; labels, IDs and other metadata never enter inference."""
     source = content.decode("utf-8-sig")
     parts, size = [], 0
@@ -162,10 +162,17 @@ def jsonl_text(content):
         size += len(text) + (2 if parts else 0)
         if size > MAX_CHARS:
             raise ValueError(f"The JSONL text exceeds {MAX_CHARS:,} characters. Split the file into smaller documents.")
-        parts.append(text)
+        identifier = record.get('id') if isinstance(record, dict) else None
+        label = str(identifier)[:120] if isinstance(identifier, (str, int)) else None
+        parts.append({'text': text, 'line': number, 'id': label})
     if not parts:
         raise ValueError("The JSONL file has no text records.")
-    return "\n\n".join(parts), [f"Read {len(parts)} JSONL record(s) in file order as one document, not separate predictions. Labels and other metadata were excluded."]
+    return parts
+
+
+def jsonl_text(content):
+    records = jsonl_records(content)
+    return "\n\n".join(row['text'] for row in records), [f"Read {len(records)} JSONL record(s) in file order as one document, not separate predictions. Labels and other metadata were excluded."]
 
 
 def extract_document(filename, content):
