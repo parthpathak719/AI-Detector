@@ -7,13 +7,19 @@ import numpy as np
 MODEL_ID = "google/muril-base-cased"
 REVISION = "afd9f36c7923d54e97903922ff1b260d091d202f"
 MODEL_DIR = Path(__file__).resolve().parents[1] / ".cache" / "muril"
+ENCODE_BATCH_SIZE = 32
+
+
+class AnalysisCancelled(Exception):
+    """Raised when a user stops an in-progress passage analysis."""
 
 
 class MuRIL:
     def __init__(self):
         import torch
         from transformers import AutoModel, AutoTokenizer
-        torch.set_num_threads(int(os.environ.get("TORCH_NUM_THREADS", "2")))
+        default_threads = min(4, os.cpu_count() or 1)
+        torch.set_num_threads(int(os.environ.get("TORCH_NUM_THREADS", str(default_threads))))
         self.torch = torch
         path = os.environ.get("MURIL_MODEL_PATH", str(MODEL_DIR))
         self.tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True)
@@ -39,7 +45,18 @@ class MuRIL:
     def token_count(self, text):
         return len(self.tokenizer.encode(text, add_special_tokens=True, truncation=False))
 
+    def token_counts(self, texts):
+        if not texts:
+            return []
+        encoded = self.tokenizer(texts, add_special_tokens=True, truncation=False,
+                                 padding=False, return_attention_mask=False,
+                                 return_token_type_ids=False)
+        return [len(ids) for ids in encoded["input_ids"]]
+
     def chunks(self, text):
+        return self.chunks_with_counts(text)[0]
+
+    def chunks_with_counts(self, text):
         """Partition all cleaned words into independently valid encoder windows."""
         words = text.split()
         encoded = self.tokenizer(words, add_special_tokens=False,
@@ -58,15 +75,20 @@ class MuRIL:
         if len(result) > 1024:
             raise ValueError("This document produces too many analysis segments. Please split it into smaller documents.")
         # Do not silently truncate if tokenizer behavior changes.
-        if any(self.token_count(chunk) > 128 for chunk in result):
+        counts = self.token_counts(result)
+        if any(count > 128 for count in counts):
             raise ValueError("Unable to segment this text without truncation. Please split it into smaller passages.")
-        return result
+        return result, counts
 
-    def encode(self, texts, task=None):
+    def encode(self, texts, task=None, cancel_event=None):
         results = []
-        for offset in range(0, len(texts), 16):
-            encoded = self.tokenizer(texts[offset:offset + 16], padding=True,
+        for offset in range(0, len(texts), ENCODE_BATCH_SIZE):
+            if cancel_event is not None and cancel_event.is_set():
+                raise AnalysisCancelled()
+            encoded = self.tokenizer(texts[offset:offset + ENCODE_BATCH_SIZE], padding=True,
                                      truncation=True, max_length=128, return_tensors="pt")
+            if cancel_event is not None and cancel_event.is_set():
+                raise AnalysisCancelled()
             with self.torch.inference_mode():
                 block = self.task_layers.get(task)
                 model = self.task_models.get(task, self.model)
@@ -78,5 +100,7 @@ class MuRIL:
                     h = block(hidden, attention_mask=attention)[0]
                 mask = encoded["attention_mask"].unsqueeze(-1).to(h.dtype)
                 pooled = (h * mask).sum(1) / mask.sum(1).clamp(min=1)
+            if cancel_event is not None and cancel_event.is_set():
+                raise AnalysisCancelled()
             results.append(pooled.cpu().numpy())
         return np.concatenate(results).astype(np.float32)

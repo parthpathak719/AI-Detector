@@ -2,12 +2,14 @@ import asyncio
 from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
+import threading
 from typing import Literal
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
+from detector.embedding import AnalysisCancelled
 from detector.service import Detector
 from detector.documents import extract_document, MAX_FILE_BYTES, SUPPORTED, jsonl_records
 from detector.text import MAX_CHARS
@@ -52,6 +54,7 @@ class BodyLimit:
 async def lifespan(app):
     app.state.detector = None
     app.state.busy = asyncio.Lock()
+    app.state.analysis_cancel = None
     try:
         app.state.detector = await run_in_threadpool(Detector)
     except Exception:
@@ -99,10 +102,25 @@ async def analyze(text, language):
     if app.state.busy.locked():
         raise HTTPException(429, "Another passage is being analyzed. Please try again shortly.")
     async with app.state.busy:
+        cancel_event = threading.Event()
+        app.state.analysis_cancel = cancel_event
         try:
-            return await run_in_threadpool(detector.predict, text, language)
+            return await run_in_threadpool(detector.predict, text, language, cancel_event)
+        except AnalysisCancelled as e:
+            raise HTTPException(409, "Analysis stopped.") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
+        finally:
+            app.state.analysis_cancel = None
+
+
+@app.post("/api/cancel")
+def cancel_analysis():
+    cancel_event = getattr(app.state, "analysis_cancel", None)
+    if cancel_event is not None:
+        cancel_event.set()
+        return {"status": "stopping"}
+    return {"status": "idle"}
 
 
 @app.post("/api/analyze")
