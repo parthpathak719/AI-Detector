@@ -11,7 +11,6 @@ from starlette.concurrency import run_in_threadpool
 from detector.service import Detector
 from detector.documents import extract_document, MAX_FILE_BYTES, SUPPORTED, jsonl_records
 from detector.text import MAX_CHARS
-from detector.language import suggest_language
 from detector.reporting import ReportRequest, render_report
 
 STATIC = Path(__file__).parent / "static"
@@ -141,15 +140,6 @@ async def export_pdf(report: ReportRequest):
     })
 
 
-class SuggestRequest(BaseModel):
-    text: str = Field(max_length=MAX_CHARS)
-
-
-@app.post("/api/suggest-language")
-def language_suggestion(body: SuggestRequest):
-    return suggest_language(body.text)
-
-
 @app.post("/api/preview-file")
 async def preview_file(file: UploadFile = File(...), jsonl_mode: Literal['combined', 'independent'] = Form('combined')):
     """Extract without running the detector or saving a document on the server."""
@@ -172,8 +162,6 @@ async def preview_file(file: UploadFile = File(...), jsonl_mode: Literal['combin
                 documents = [dict(text=text, name='', notes=notes)]
         except (ValueError, UnicodeDecodeError) as error:
             raise HTTPException(422, str(error)) from error
-        for document in documents:
-            document['suggestion'] = suggest_language(document['text'])
         return {'documents': documents}
     finally:
         await file.close()
