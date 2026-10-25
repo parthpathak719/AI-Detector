@@ -81,4 +81,4 @@ def test_invalid_jsonl_has_actionable_errors(content, message):
 def test_jsonl_extracted_text_limit():
     import json
     with pytest.raises(ValueError, match='exceeds'):
-        extract_document('data.jsonl', json.dumps({'text':'a' * 100001}).encode())
+        extract_document('data.jsonl', json.dumps({'text':'a' * 500001}).encode())

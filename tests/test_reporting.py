@@ -40,5 +40,5 @@ def test_report_limits_and_nonfinite_scores_are_rejected():
     with pytest.raises(ValidationError): ReportRequest.model_validate(data)
     data=payload();data['chunk_count']=2
     with pytest.raises(ValidationError): ReportRequest.model_validate(data)
-    data=payload('x'*100000, count=3)
+    data=payload('x'*100000, count=11)
     with pytest.raises(ValidationError): ReportRequest.model_validate(data)

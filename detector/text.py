@@ -9,8 +9,8 @@ LANGUAGES = {
     "en": "English", "hi": "Hindi", "ta": "Tamil", "kn": "Kannada",
     "hi_en": "Hinglish", "ta_en": "Tanglish", "kn_en": "Kanglish",
 }
-MAX_CHARS = 100000
-MAX_WORDS = 20000
+MAX_CHARS = 500000
+MAX_WORDS = 50000
 
 
 def clean_text(text: str) -> str:
