@@ -3,6 +3,7 @@ import os
 import copy
 from pathlib import Path
 import numpy as np
+from detector.text import MAX_SEGMENTS
 
 MODEL_ID = "google/muril-base-cased"
 REVISION = "afd9f36c7923d54e97903922ff1b260d091d202f"
@@ -72,7 +73,7 @@ class MuRIL:
             tokens += len(ids)
         if current:
             result.append(" ".join(current))
-        if len(result) > 1024:
+        if len(result) > MAX_SEGMENTS:
             raise ValueError("This document produces too many analysis segments. Please split it into smaller documents.")
         # Do not silently truncate if tokenizer behavior changes.
         counts = self.token_counts(result)

@@ -78,6 +78,8 @@ def test_single_analysis_can_be_cancelled(client):
     from threading import Event
     from detector.embedding import AnalysisCancelled
 
+    from uuid import uuid4
+    analysis_id = str(uuid4())
     started = Event()
     original = app.state.detector
 
@@ -91,9 +93,9 @@ def test_single_analysis_can_be_cancelled(client):
     app.state.detector = WaitingDetector()
     try:
         with ThreadPoolExecutor(max_workers=1) as pool:
-            analysis = pool.submit(client.post, '/api/analyze', json={'text': PASSAGE, 'language': 'en'})
+            analysis = pool.submit(client.post, '/api/analyze', json={'text': PASSAGE, 'language': 'en', 'analysis_id': analysis_id})
             assert started.wait(timeout=5)
-            stopped = client.post('/api/cancel')
+            stopped = client.post('/api/cancel', json={'analysis_id': analysis_id})
             assert stopped.status_code == 200
             assert stopped.json() == {'status': 'stopping'}
             response = analysis.result(timeout=10)
@@ -189,3 +191,20 @@ def test_pdf_export_rejects_incomplete_report_and_stale_assets_revalidate(client
     assert client.post('/api/report.pdf', json={'label': 'human'}).status_code == 422
     assert client.get('/static/app.js?v=4').headers['cache-control'] == 'no-store'
     assert 'edit-source' not in client.get('/').text
+
+
+def test_early_cancel_applies_only_to_matching_analysis(client):
+    from uuid import uuid4
+    analysis_id = str(uuid4())
+    assert client.post('/api/cancel', json={'analysis_id': analysis_id}).json()['status']=='cancelled'
+    assert client.post('/api/analyze', json={'text':PASSAGE,'language':'en','analysis_id':analysis_id}).status_code==409
+    assert client.post('/api/analyze', json={'text':PASSAGE,'language':'en','analysis_id':str(uuid4())}).status_code==200
+
+
+def test_large_document_can_exceed_old_segment_cap(client):
+    text = 'unhelpfully ' * 40000
+    from detector.text import validate_text
+    cleaned = validate_text(text, 'en')
+    chunks = app.state.detector.encoder.chunks(cleaned)
+    assert len(chunks)>1024
+    assert ' '.join(chunks)==cleaned

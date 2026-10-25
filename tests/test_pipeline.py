@@ -121,3 +121,11 @@ def test_source_alignment_keeps_compounds_and_multilingual_marks():
     assert all(e['text'] == text[e['source_start']:e['source_end']] for e in excerpts)
     assert excerpts[0]['source_start'] == 0
     assert excerpts[-1]['source_end'] == len(text)
+
+
+def test_large_source_excerpt_can_be_exported():
+    from detector.reporting import ReportRequest
+    text = ' ' * 100001 + 'This passage has enough words to check a large source excerpt.'
+    result = detector([.8, .2]).predict(text, 'en')
+    assert len(result['segments'][0]['text']) > 100000
+    ReportRequest.model_validate(result)

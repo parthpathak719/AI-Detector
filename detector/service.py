@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 from detector.embedding import AnalysisCancelled, MuRIL
 from detector.text import validate_text, source_excerpts
-from scripts.verify_artifacts import verify
+from scripts.verify_artifacts import verify, resolve_artifact_dir
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = ("task1_binary", "task2_attribution", "task3_codemix")
@@ -12,7 +12,7 @@ TASKS = ("task1_binary", "task2_attribution", "task3_codemix")
 
 class Detector:
     def __init__(self):
-        artifact_dir = Path(os.environ.get("ARTIFACT_DIR", ROOT / "artifacts"))
+        artifact_dir = resolve_artifact_dir()
         verify(artifact_dir)
         self.artifacts = {task: joblib.load(artifact_dir / f"{task}.joblib") for task in TASKS}
         self.encoder = MuRIL()

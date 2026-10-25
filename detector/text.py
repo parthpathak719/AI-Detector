@@ -11,6 +11,7 @@ LANGUAGES = {
 }
 MAX_CHARS = 500000
 MAX_WORDS = 50000
+MAX_SEGMENTS = MAX_WORDS  # Each valid segment contains at least one word.
 
 
 def clean_text(text: str) -> str:
