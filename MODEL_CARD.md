@@ -75,7 +75,7 @@ The fine-tuned candidates did not improve the selection metric. These small diff
 
 Each cleaned word appears once, in a contiguous segment that fits the original encoder window. Segment probabilities are averaged using cleaned word counts. This prevents a tiny final segment from having the same weight as a full segment. The resulting score is a model-score aggregate, **not a calibrated document probability or fraction of AI-authored content**. Overall family attribution runs only when the aggregate detector predicts AI, and uses AI-leaning segments with at least eight words; family probabilities are weighted by segment word count × AI score. PDF reports display extracted segment text with punctuation and numbers. Source excerpts can overlap at a split compound word while model words are included once. Long-document headings explicitly say authorship is inconclusive; unchanged underlying model scores remain visible. This is a scope warning, not a newly calibrated abstention mechanism.
 
-Limits: 100,000 raw/extracted characters, 20,000 cleaned words, 10 MB upload, 300 PDF pages, and at most 1,024 analysis segments. These are resource limits, not changes to the classifier or its trained token window. All classifier files and previous evaluation results remain unchanged.
+Limits: 500,000 raw/extracted characters, 50,000 cleaned words, 10 MB upload, 300 PDF pages, and at most 1,024 analysis segments. These are resource limits, not changes to the classifier or its trained token window. All classifier files and previous evaluation results remain unchanged.
 
 ## Next useful experiment
 

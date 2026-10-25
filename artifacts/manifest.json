@@ -1,5 +1,8 @@
 {
-  "task1_binary.joblib": "582f225b654d89747b95e1efda4387d23f38191c0876614cb7d9010cc3e0f485",
-  "task2_attribution.joblib": "a0231389a25a93ff878f24eb1df29f2f6b92ad476e5a60f1710a3db7645279c8",
-  "task3_codemix.joblib": "e997dbbbaf0a458ae14d1621f0e9d57c1611b697397704a016f3d11a9e6434a7"
+  "task1_binary.joblib": "33adafbd47034a3e8a7c3bffdb8820bca6344cf5cdaeeffc34f708887eb93218",
+  "task1_binary_muril_full.safetensors": "a9e6d0df28e5825017fa415c9a7df59281e07465f44bb657e3c1d5d1952dcd81",
+  "task2_attribution.joblib": "bfa67cc6a9fd83ff450c71dac8033c1a92324c38c04744759db0f4029078707a",
+  "task2_attribution_muril_full.safetensors": "16701e329ba88e4e9daac3ecce2fef3fadd6179e7b6c19987b623e256db706b1",
+  "task3_codemix.joblib": "37c196176ace814e5352328cc759d8b60c48f63fadfeac992fa51ec0a116b782",
+  "task3_codemix_muril_full.safetensors": "a19b9d2c82e3b43bd66ab62a52d6ed402e711b6bb4cb615c3167bb2c4a5939f6"
 }

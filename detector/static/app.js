@@ -38,7 +38,7 @@ for(const key of ['paste','upload']) {
     }
   });
 }
-function count() { const text=$('text').value; $('word-count').textContent=`${text.trim().split(/\s+/u).filter(Boolean).length.toLocaleString()} words · ${[...text].length.toLocaleString()} / 100,000 chars`; }
+function count() { const text=$('text').value; $('word-count').textContent=`${text.trim().split(/\s+/u).filter(Boolean).length.toLocaleString()} words · ${[...text].length.toLocaleString()} / 500,000 chars`; }
 $('text').addEventListener('input',()=>{count();clearResult();});
 $('language').addEventListener('change',clearResult);
 $('example').addEventListener('click',()=>{$('text').value=sample;count();clearResult();$('error').hidden=true;});

@@ -6,7 +6,7 @@ import unicodedata
 
 from fpdf import FPDF
 from pydantic import BaseModel, Field, model_validator
-from detector.text import LANGUAGES
+from detector.text import LANGUAGES, MAX_CHARS, MAX_WORDS
 
 Score = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
 FONT_DIR = Path(__file__).parent / 'fonts'
@@ -20,7 +20,7 @@ class Scores(BaseModel):
 class Segment(BaseModel):
     index: int = Field(ge=1, le=1024)
     text: str = Field(max_length=100000)
-    word_count: int = Field(ge=0, le=20000)
+    word_count: int = Field(ge=0, le=MAX_WORDS)
     token_count: int = Field(ge=0, le=128)
     label: Literal['human', 'ai']
     ai_score: Score
@@ -36,7 +36,7 @@ class ReportRequest(BaseModel):
     language: Literal['en', 'hi', 'ta', 'kn', 'hi_en', 'ta_en', 'kn_en']
     label: Literal['human', 'ai']
     scores: Scores
-    word_count: int = Field(ge=0, le=20000)
+    word_count: int = Field(ge=0, le=MAX_WORDS)
     chunk_count: int = Field(ge=1, le=1024)
     model_version: str = Field(max_length=120)
     encoder_variant: str = Field(max_length=120)
@@ -48,7 +48,7 @@ class ReportRequest(BaseModel):
     def bound_report(self):
         if len(self.segments) != self.chunk_count:
             raise ValueError('Report segment count does not match its segments.')
-        if sum(len(s.text) for s in self.segments) > 200000:
+        if sum(len(s.text) for s in self.segments) > 2 * MAX_CHARS:
             raise ValueError('Report text is too long.')
         return self
 

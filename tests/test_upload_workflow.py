@@ -47,13 +47,14 @@ def test_document_preview_matches_extraction(client, suffix):
 
 
 def test_thousand_record_preview_exceeds_combined_limit_but_keeps_records(client):
-    records=[{'id':str(i),'text':PASSAGE,'label':'ai'} for i in range(1000)]
+    large_passage=PASSAGE * 4
+    records=[{'id':str(i),'text':large_passage,'label':'ai'} for i in range(1000)]
     content='\n'.join(json.dumps(row) for row in records)
     response=client.post('/api/preview-file',data={'jsonl_mode':'independent'},files={'file':('large.jsonl',content)})
     assert response.status_code==200
     docs=response.json()['documents']
     assert len(docs)==1000
-    assert all(doc['text']==PASSAGE for doc in docs)
+    assert all(doc['text']==large_passage for doc in docs)
     assert docs[-1]['name']=='Line 1000 · ID 999'
     combined=client.post('/api/preview-file',files={'file':('large.jsonl',content)})
     assert combined.status_code==422
@@ -61,7 +62,7 @@ def test_thousand_record_preview_exceeds_combined_limit_but_keeps_records(client
 
 
 def test_independent_record_character_limit(client):
-    content=json.dumps({'text':'a'*100001})
+    content=json.dumps({'text':'a'*500001})
     response=client.post('/api/preview-file',data={'jsonl_mode':'independent'},files={'file':('large.jsonl',content)})
     assert response.status_code==422
     assert 'line 1 exceeds' in response.json()['detail']

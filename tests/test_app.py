@@ -52,7 +52,7 @@ def test_supported_languages(client, language, text):
     assert response.json()['task'] == ('task3_codemix' if language.endswith('_en') else 'task1_binary')
 
 
-@pytest.mark.parametrize('text,language', [('', 'en'), ('hi', 'en'), ('123 !!! 😀', 'en'), (PASSAGE, 'fr'), ('word ' * 20001, 'en'), ('a' * 100001, 'en')])
+@pytest.mark.parametrize('text,language', [('', 'en'), ('hi', 'en'), ('123 !!! 😀', 'en'), (PASSAGE, 'fr'), ('word ' * 50001, 'en'), ('a' * 500001, 'en')])
 def test_invalid_text(client, text, language):
     assert client.post('/api/analyze', json={'text': text, 'language': language}).status_code == 422
 
