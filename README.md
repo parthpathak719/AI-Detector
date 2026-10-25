@@ -80,11 +80,13 @@ Set `ARTIFACT_DIR` again when opening a new terminal. If the selected models are
 ## Start and use the app
 
 1. Open **http://127.0.0.1:8000** and wait for **Model ready**.
-2. Paste text or upload a file, select the language, and click **Analyze content**.
-3. Read the overall result and model-family scores, when available.
-4. Click **Download PDF report** for the summary, full segment analysis and extraction notes.
+2. Paste text or select up to **10 files**. Uploaded files are extracted first; review the text preview before analysis.
+3. Keep the automatic language suggestion or choose a language manually. In a batch, automatic mode lets you correct each item separately. Suggestions use script and word clues; Romanized text may need manual correction.
+4. For JSONL, choose **Combine into one document** or **Analyze each record separately** (up to 100 items per batch), then click **Analyze content**.
+5. Read the result and model-family scores. Multiple files/records appear in a batch list; select **View result** for an item. Failed items do not discard successful results.
+6. Click **Download PDF report** for the selected item’s summary, full segment analysis and extraction notes. **Stop after current item** stops queued work without discarding completed results.
 
-Limits: **10 MB per upload**, **100,000 extracted characters**, **20,000 cleaned words**, and **300 PDF pages**. Scanned PDFs require OCR before upload. JSONL accepts one JSON string or an object with a string `text` or `content` field per line; records are combined into one document and metadata is ignored.
+Limits: **10 MB per upload**, **100,000 extracted characters**, **20,000 cleaned words**, and **300 PDF pages**. Scanned PDFs require OCR before upload. JSONL accepts one JSON string or an object with a string `text` or `content` field per line; records can be combined per file or analyzed independently. IDs identify records but are not classified; labels and other metadata are ignored. Long records still use segment averaging internally; independent records never share an aggregate score.
 
 Content is processed locally and is not saved by the app. Reports include source text. Keep the terminal running while using the app; stop it with **Ctrl+C**. Next time, run only the server command for your OS (and set `ARTIFACT_DIR` if applicable), not the setup command.
 

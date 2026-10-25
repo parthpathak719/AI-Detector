@@ -9,8 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from detector.service import Detector
-from detector.documents import extract_document, MAX_FILE_BYTES, SUPPORTED
+from detector.documents import extract_document, MAX_FILE_BYTES, SUPPORTED, jsonl_records
 from detector.text import MAX_CHARS
+from detector.language import suggest_language
 from detector.reporting import ReportRequest, render_report
 
 STATIC = Path(__file__).parent / "static"
@@ -138,3 +139,41 @@ async def export_pdf(report: ReportRequest):
         "Content-Disposition": 'attachment; filename="lexora-analysis.pdf"',
         "Cache-Control": "no-store",
     })
+
+
+class SuggestRequest(BaseModel):
+    text: str = Field(max_length=MAX_CHARS)
+
+
+@app.post("/api/suggest-language")
+def language_suggestion(body: SuggestRequest):
+    return suggest_language(body.text)
+
+
+@app.post("/api/preview-file")
+async def preview_file(file: UploadFile = File(...), jsonl_mode: Literal['combined', 'independent'] = Form('combined')):
+    """Extract without running the detector or saving a document on the server."""
+    try:
+        suffix = Path(file.filename or '').suffix.lower()
+        if suffix not in SUPPORTED:
+            raise HTTPException(415, 'Choose a TXT, MD, JSONL, PDF, DOCX or DOC file.')
+        content = await file.read(MAX_FILE_BYTES + 1)
+        if len(content) > MAX_FILE_BYTES:
+            raise HTTPException(413, 'Please upload a file under 10 MB.')
+        try:
+            if suffix == '.jsonl' and jsonl_mode == 'independent':
+                rows = await run_in_threadpool(jsonl_records, content)
+                if len(rows) > 100:
+                    raise ValueError('Use up to 100 independent JSONL records per batch.')
+                documents = [dict(text=row['text'], name=f"Line {row['line']}" + (f" · ID {row['id']}" if row['id'] else ''),
+                                  notes=['JSONL record analyzed independently. Labels and metadata are excluded.']) for row in rows]
+            else:
+                text, notes = await run_in_threadpool(extract_document, file.filename, content)
+                documents = [dict(text=text, name='', notes=notes)]
+        except (ValueError, UnicodeDecodeError) as error:
+            raise HTTPException(422, str(error)) from error
+        for document in documents:
+            document['suggestion'] = suggest_language(document['text'])
+        return {'documents': documents}
+    finally:
+        await file.close()
