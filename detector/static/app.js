@@ -2,7 +2,17 @@
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
 let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false, cancelRequested=false, activeJobCount=0;
-const sample = 'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.';
+const examples = [
+  'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.',
+  'The rain started just as we reached the station. We waited beneath the old clock, sharing a packet of warm roasted peanuts.',
+  'My grandmother keeps a small garden behind her kitchen. Every morning she checks the tomato plants and waters the pots before making tea.',
+  'The new science museum has a room where visitors can build simple machines. I spent an hour testing bridges made from paper and tape.',
+  'We tried making vegetable soup from whatever was left in the fridge. A little lemon and fresh coriander made the whole kitchen smell bright.',
+  'Our school band practiced in the auditorium after classes. The drummer kept losing the beat, but by sunset everyone was playing together.',
+  'The trail followed a quiet stream through the hills. We stopped at a wooden bridge to watch leaves drift slowly beneath our feet.',
+  'A tiny repair shop opened beside the market last month. The owner fixed my grandfather’s radio and showed me how its tuning dial works.'
+];
+let exampleIndex=-1;
 async function request(path, options) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),15*60*1000);
@@ -41,7 +51,14 @@ for(const key of ['paste','upload']) {
 function count() { const text=$('text').value; $('word-count').textContent=`${text.trim().split(/\s+/u).filter(Boolean).length.toLocaleString()} words · ${[...text].length.toLocaleString()} / 500,000 chars`; }
 $('text').addEventListener('input',()=>{count();clearResult();});
 $('language').addEventListener('change',clearResult);
-$('example').addEventListener('click',()=>{$('text').value=sample;count();clearResult();$('error').hidden=true;});
+$('example').addEventListener('click',()=>{
+  const current=$('text').value;
+  for(let offset=1;offset<=examples.length;offset++){
+    const next=(exampleIndex+offset)%examples.length;
+    if(examples[next]!==current){exampleIndex=next;break;}
+  }
+  $('text').value=examples[exampleIndex];count();clearResult();$('error').hidden=true;
+});
 $('clear').addEventListener('click',()=>{$('text').value='';count();clearResult();$('error').hidden=true;$('text').focus();});
 function renderPreview() {
   $('preview').hidden=!items.length;
