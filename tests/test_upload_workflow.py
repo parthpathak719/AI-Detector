@@ -1,6 +1,5 @@
 import json
 import pytest
-from detector.language import suggest_language
 from tests.test_app import client, PASSAGE
 
 
@@ -35,26 +34,6 @@ def test_preview_limits_and_malformed_input(client):
     assert client.post('/api/preview-file',files={'file':('bad.jsonl','{broken')}).status_code==422
     assert client.post('/api/preview-file',files={'file':('bad.exe','hello')}).status_code==415
     assert client.post('/api/preview-file',data={'jsonl_mode':'invalid'},files={'file':('x.txt',PASSAGE)}).status_code==422
-
-
-@pytest.mark.parametrize('text,expected',[
-    ('यह एक हिंदी भाषा का उदाहरण है जिसमें बहुत सारे शब्द शामिल हैं।','hi'),
-    ('தமிழ் மொழியில் எழுதப்பட்ட ஒரு எடுத்துக்காட்டு இது','ta'),
-    ('ಇದು ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಲಾದ ಒಂದು ಉದಾಹರಣೆಯಾಗಿದೆ','kn'),
-    ('This is an English paragraph about the weather today.','en'),
-    ('mujhe nahi pata hai lekin this example has some mixed words','hi_en'),
-    ('enakku romba nalla this example is useful','ta_en'),
-    ('nanage tumba beku this example is useful','kn_en'),
-    ('','en'),
-])
-def test_language_hints(text,expected):
-    result=suggest_language(text)
-    assert result['language']==expected and result['reason']
-
-
-def test_latin_fallback_is_explicit_and_mixed_script_is_suggested():
-    assert 'fallback' in suggest_language('bonjour les amis')['reason']
-    assert suggest_language('यह हिंदी पाठ है and this is a long English explanation with several words')['language']=='hi_en'
 
 
 @pytest.mark.parametrize('suffix', ['pdf','docx','doc'])

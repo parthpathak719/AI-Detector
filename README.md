@@ -81,9 +81,9 @@ Set `ARTIFACT_DIR` again when opening a new terminal. If the selected models are
 
 1. Open **http://127.0.0.1:8000** and wait for **Model ready**.
 2. Paste text or select up to **10 files**. Uploaded files are extracted first; review the text preview before analysis.
-3. Keep the automatic language suggestion or choose a language manually. In a batch, automatic mode lets you correct each item separately. Suggestions use script and word clues; Romanized text may need manual correction.
+3. Choose **Text language**. This selection applies to every file or record in the batch.
 4. For JSONL, choose **Combine into one document** or **Analyze each record separately** (up to 100 items per batch), then click **Analyze content**.
-5. Read the result and model-family scores. Multiple files/records appear in a batch list; select **View result** for an item. Failed items do not discard successful results.
+5. Read the result and model-family scores. Multiple files/records appear in a batch list; select an item’s card to view its analysis and PDF report. The selected card stays highlighted. Failed items do not discard successful results.
 6. Click **Download PDF report** for the selected item’s summary, full segment analysis and extraction notes. **Stop after current item** stops queued work without discarding completed results.
 
 Limits: **10 MB per upload**, **100,000 extracted characters**, **20,000 cleaned words**, and **300 PDF pages**. Scanned PDFs require OCR before upload. JSONL accepts one JSON string or an object with a string `text` or `content` field per line; records can be combined per file or analyzed independently. IDs identify records but are not classified; labels and other metadata are ignored. Long records still use segment averaging internally; independent records never share an aggregate score.

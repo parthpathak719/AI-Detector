@@ -76,15 +76,30 @@ async def main():
         assert await page.locator('#preview-item option').count()==3
         await page.locator('#preview-item').select_option('1')
         assert await page.locator('#preview-text').input_value()==passage
-        assert await page.locator('#preview-language').input_value()=='en'
+        assert await page.locator('#preview-language').count()==0
+        assert await page.locator('#language option[value=auto]').count()==0
+        assert await page.locator('#language').input_value()=='en'
         assert await page.locator('#preview-text').get_attribute('readonly') is not None
         assert await page.locator('#result').is_hidden()
         await page.get_by_role('button',name='Analyze content').click()
         await page.locator('#submit:not([disabled])').wait_for(timeout=60000)
         assert '2 complete · 1 failed' in await page.locator('#batch-status').inner_text()
-        assert await page.locator('.batch-row button:visible').count()==2
-        await page.locator('.batch-row button').nth(0).click()
-        assert await page.locator('#result-source').inner_text()=='first.txt'
+        cards=page.locator('.batch-card:not([disabled])')
+        assert await cards.count()==2
+        assert await cards.nth(0).get_attribute('aria-pressed')=='true'
+        assert 'first.txt' in await page.locator('#result-source').inner_text()
+        normal=await cards.nth(1).evaluate('(e)=>getComputedStyle(e).backgroundColor')
+        await cards.nth(1).hover()
+        await page.wait_for_timeout(200)
+        assert await cards.nth(1).evaluate('(e)=>getComputedStyle(e).backgroundColor')!=normal
+        await cards.nth(1).click()
+        assert await cards.nth(1).get_attribute('aria-pressed')=='true'
+        assert await cards.nth(0).get_attribute('aria-pressed')=='false'
+        assert 'Line 1 · ID essay' in await page.locator('#result-source').inner_text()
+        assert await page.locator('#preview-item').input_value()=='1'
+        await cards.nth(0).focus()
+        await page.keyboard.press('Enter')
+        assert await cards.nth(0).get_attribute('aria-pressed')=='true'
         await page.screenshot(path=str(out/'batch-result.png'),full_page=True)
         # Stop only queued work, leaving the current completed result usable.
         hit=asyncio.Event(); release=asyncio.Event()

@@ -1,8 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
-const languages = {en:'English',hi:'Hindi',ta:'Tamil',kn:'Kannada',hi_en:'Hinglish',ta_en:'Tanglish',kn_en:'Kanglish'};
-let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false, suggestionRevision=0;
+let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false;
 const sample = 'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.';
 async function request(path, options) {
   const controller=new AbortController();
@@ -29,7 +28,7 @@ function setMode(next) {
     $(`${key}-tab`).setAttribute('aria-selected',String(key===mode));
     $(`${key}-tab`).tabIndex=key===mode?0:-1; $(`${key}-panel`).hidden=key!==mode;
   }
-  $('error').hidden=true; updateLanguageHint();
+  $('error').hidden=true;
 }
 for(const key of ['paste','upload']) {
   $(`${key}-tab`).addEventListener('click',()=>setMode(key));
@@ -40,34 +39,19 @@ for(const key of ['paste','upload']) {
   });
 }
 function count() { const text=$('text').value; $('word-count').textContent=`${text.trim().split(/\s+/u).filter(Boolean).length.toLocaleString()} words · ${[...text].length.toLocaleString()} / 100,000 chars`; }
-let suggestTimer;
-function scheduleSuggestion() { clearTimeout(suggestTimer); const id=++suggestionRevision; suggestTimer=setTimeout(async()=>{
-  if(mode!=='paste'||$('language').value!=='auto') return;
-  try {const s=await jsonRequest('/api/suggest-language',{text:$('text').value});if(id===suggestionRevision&&$('language').value==='auto'&&mode==='paste') $('language-hint').textContent=`Suggested: ${s.name}. ${s.reason}`;}catch{if(id===suggestionRevision) $('language-hint').textContent='Suggestion unavailable. Choose a language manually.';}
-},400); }
-function updateLanguageHint() {
-  ++suggestionRevision;
-  $('language-hint').textContent=$('language').value==='auto'?(mode==='upload'?'Each preview has its own suggested language. You can change it before analysis.':'Suggestions can be changed. Romanized text may need manual selection.'):'Your selected language will be used for every item.';
-  if(mode==='paste')scheduleSuggestion();else renderPreview();
-}
-$('text').addEventListener('input',()=>{count();clearResult();scheduleSuggestion();});
-$('language').addEventListener('change',()=>{clearResult();updateLanguageHint();});
-$('example').addEventListener('click',()=>{$('text').value=sample;count();clearResult();$('error').hidden=true;updateLanguageHint();});
-$('clear').addEventListener('click',()=>{$('text').value='';count();clearResult();$('error').hidden=true;updateLanguageHint();$('text').focus();});
-for(const [value,label] of Object.entries(languages)) $('preview-language').add(new Option(label,value));
+$('text').addEventListener('input',()=>{count();clearResult();});
+$('language').addEventListener('change',clearResult);
+$('example').addEventListener('click',()=>{$('text').value=sample;count();clearResult();$('error').hidden=true;});
+$('clear').addEventListener('click',()=>{$('text').value='';count();clearResult();$('error').hidden=true;$('text').focus();});
 function renderPreview() {
   $('preview').hidden=!items.length;
   if(!items.length)return;
   const item=items[Number($('preview-item').value)||0];
   $('preview-text').value=item.text;
   $('preview-notes').textContent=`${items.length} item(s) ready. ${item.notes.join(' ')}`;
-  const automatic=$('language').value==='auto';
-  $('preview-language').value=automatic?item.language:$('language').value;
-  $('preview-language').disabled=!automatic||working||preparing;
-  $('preview-hint').textContent=automatic?item.suggestion.reason:'Using the language selected below for all items.';
+
 }
 $('preview-item').addEventListener('change',renderPreview);
-$('preview-language').addEventListener('change',()=>{items[Number($('preview-item').value)].language=$('preview-language').value;clearResult();});
 async function chooseFiles(files) {
   if(working||preparing)return;
   const list=Array.from(files);clearResult();$('error').hidden=true;
@@ -87,13 +71,13 @@ async function chooseFiles(files) {
         const body=new FormData();body.append('file',file);body.append('jsonl_mode',$('jsonl-mode').value);
         const data=await request('/api/preview-file',{method:'POST',body});
         if(items.length+data.documents.length>100)throw new Error('Batch limit is 100 items; split this file into a smaller batch.');
-        for(const doc of data.documents)items.push({...doc,name:file.name+(doc.name?' / '+doc.name:''),language:doc.suggestion.language});
+        for(const doc of data.documents)items.push({...doc,name:file.name+(doc.name?' / '+doc.name:''),filename:file.name,recordName:doc.name});
       }catch(e){errors.push(`${file.name}: ${e.message}`);}
     }
     if(current!==revision)return;
     items.forEach((item,i)=>$('preview-item').add(new Option(item.name,String(i))));
     if(errors.length)showError(errors.join(' '));
-  }finally{preparing=false;lockForm(false);$('preparing').hidden=true;renderPreview();updateLanguageHint();}
+  }finally{preparing=false;lockForm(false);$('preparing').hidden=true;renderPreview();}
 }
 $('file').addEventListener('change',()=>chooseFiles($('file').files));
 $('remove-file').addEventListener('click',()=>{$('file').value='';chooseFiles([]);});
@@ -171,7 +155,7 @@ $('download-report').addEventListener('click', async () => {
   }
 });
 function lockForm(value) {
-  for(const id of ['paste-tab','upload-tab','text','file','language','clear','example','remove-file','jsonl-mode','preview-item','preview-language'])$(id).disabled=value;
+  for(const id of ['paste-tab','upload-tab','text','file','language','clear','example','remove-file','jsonl-mode','preview-item'])$(id).disabled=value;
   $('submit').disabled=value||!ready;
   $('analyze-form').setAttribute('aria-busy',String(value));$('loading-note').hidden=!working;
   if(!value)renderPreview();
@@ -187,33 +171,45 @@ $('analyze-form').addEventListener('submit',async event=>{
   const globalLanguage=$('language').value;
   $('stop-batch').hidden=jobs.length<2;$('stop-batch').disabled=false;$('stop-batch').textContent='Stop after current item';
   $('batch-results').hidden=jobs.length<2;
-  const rows=jobs.map(job=>{
-    const row=document.createElement('div');row.className='batch-row';
-    const name=document.createElement('span');name.textContent=job.name;
+  let selectedIndex=-1;
+  const rows=jobs.map((job,index)=>{
+    const view=document.createElement('button');view.type='button';view.className='batch-card';view.disabled=true;
+    view.setAttribute('aria-pressed','false');
+    const number=document.createElement('span');number.className='batch-number';number.textContent=String(index+1).padStart(2,'0');
+    const body=document.createElement('span');body.className='batch-card-body';
+    const name=document.createElement('strong');name.className='batch-name';name.textContent=job.recordName||job.name;name.title=name.textContent;
+    const file=document.createElement('span');file.className='batch-file';file.textContent=job.recordName?job.filename:'';file.title=file.textContent;file.hidden=!job.recordName;
     const status=document.createElement('span');status.className='batch-outcome';status.textContent='Queued';
-    const view=document.createElement('button');view.type='button';view.textContent='View result';view.hidden=true;
-    row.append(name,status,view);$('batch-list').append(row);return {status,view};
+    const action=document.createElement('span');action.className='batch-action';action.textContent='Waiting';
+    body.append(name,file,status,action);view.append(number,body);$('batch-list').append(view);
+    return {status,view,action};
   });
+  function selectResult(index,data,elapsed) {
+    selectedIndex=index;
+    rows.forEach((row,i)=>{row.view.setAttribute('aria-pressed',String(i===index));if(!row.view.disabled)row.action.textContent=i===index?'Selected · analysis below':'View analysis →';});
+    if(mode==='upload'){$('preview-item').value=String(index);renderPreview();}
+    showResult(data,elapsed,jobs[index].name);
+    $('result-source').textContent=(jobs.length>1?`Viewing item ${index+1} of ${jobs.length} · `:'')+jobs[index].name;
+  }
   let completed=0,failed=0;
   try {
     for(let i=0;i<jobs.length;i++) {
-      if(stopRequested){for(let j=i;j<jobs.length;j++)rows[j].status.textContent='Not analyzed';break;}
-      const job=jobs[i],row=rows[i];row.status.textContent='Analyzing…';
+      if(stopRequested){for(let j=i;j<jobs.length;j++){rows[j].status.textContent='Not analyzed';rows[j].action.textContent='Stopped';}break;}
+      const job=jobs[i],row=rows[i];row.status.textContent='Analyzing…';row.action.textContent='Processing';
       $('submit-label').textContent=`Analyzing ${i+1} / ${jobs.length}…`;
       $('batch-status').textContent=`${completed} complete · ${failed} failed · ${jobs.length-i} remaining`;
       const started=performance.now();
       try {
-        let language=globalLanguage;
-        if(language==='auto')language=job.language||(await jsonRequest('/api/suggest-language',{text:job.text})).language;
+        const language=globalLanguage;
         const data=await jsonRequest('/api/analyze',{text:job.text,language});
         data.warnings.push(...job.notes);const elapsed=(performance.now()-started)/1000;
         row.status.textContent=`${data.label==='ai'?'AI':'Human'}-leaning · ${(data.scores.ai*100).toFixed(1)}% AI${data.family?' · '+data.family.label:''}`;
-        row.view.hidden=false;row.view.addEventListener('click',()=>showResult(data,elapsed,job.name));
-        showResult(data,elapsed,job.name);completed++;
-      }catch(e){failed++;row.status.textContent=e.message;if(jobs.length===1)showError(e.message);}
+        row.view.disabled=false;row.action.textContent='View analysis →';row.view.addEventListener('click',()=>selectResult(i,data,elapsed));
+        if(selectedIndex===-1)selectResult(i,data,elapsed);completed++;
+      }catch(e){failed++;row.view.classList.add('failed');row.action.textContent='Could not analyze';row.status.textContent=e.message;if(jobs.length===1)showError(e.message);}
     }
   }finally{
-    $('batch-status').textContent=`${completed} complete · ${failed} failed${stopRequested?' · stopped':''}. Select an item to view its result and download its PDF.`;
+    $('batch-status').textContent=`${completed} complete · ${failed} failed${stopRequested?' · stopped':''}`;
     working=false;lockForm(false);$('submit-label').textContent='Analyze content';$('stop-batch').hidden=true;
   }
 });
