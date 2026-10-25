@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const MAX_FILE = 10 * 1024 * 1024;
-let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false, cancelRequested=false, activeJobCount=0;
+let mode='paste', working=false, ready=false, exporting=false, preparing=false, selectedFiles=[], items=[], lastReport=null, revision=0, stopRequested=false, cancelRequested=false, activeJobCount=0, activeAnalysisId=null;
 const examplesByLanguage = {
   en: [
     'I went back to the little bookshop near our old house yesterday. The owner still remembered the mystery novels I used to borrow after school.',
@@ -227,7 +227,10 @@ function lockForm(value) {
 $('stop-batch').addEventListener('click',async()=>{
   if(activeJobCount===1){
     cancelRequested=true;$('stop-batch').disabled=true;$('stop-batch').textContent='Stopping analysis…';
-    try{await fetch('/api/cancel',{method:'POST'});}catch{}
+    try{await jsonRequest('/api/cancel',{analysis_id:activeAnalysisId});}
+    catch(error){
+      if(working){cancelRequested=false;$('stop-batch').disabled=false;$('stop-batch').textContent='Stop analysis';showError('Could not stop analysis. Please try again.');}
+    }
     return;
   }
   stopRequested=true;$('stop-batch').disabled=true;$('stop-batch').textContent='Stopping after current item…';
@@ -273,7 +276,8 @@ $('analyze-form').addEventListener('submit',async event=>{
       const started=performance.now();
       try {
         const language=globalLanguage;
-        const data=await jsonRequest('/api/analyze',{text:job.text,language});
+        activeAnalysisId=crypto.randomUUID();
+        const data=await jsonRequest('/api/analyze',{text:job.text,language,analysis_id:activeAnalysisId});
         data.warnings.push(...job.notes);const elapsed=(performance.now()-started)/1000;
         row.status.textContent=`${data.label==='ai'?'AI':'Human'}-leaning · ${(data.scores.ai*100).toFixed(1)}% AI${data.family?' · '+data.family.label:''}`;
         row.view.disabled=false;row.action.textContent='View analysis →';row.view.addEventListener('click',()=>selectResult(i,data,elapsed));
@@ -285,7 +289,7 @@ $('analyze-form').addEventListener('submit',async event=>{
     }
   }finally{
     $('batch-status').textContent=`${completed} complete · ${failed} failed${stopRequested||cancelled?' · stopped':''}`;
-    working=false;activeJobCount=0;lockForm(false);$('submit-label').textContent='Analyze content';$('stop-batch').hidden=true;
+    working=false;activeJobCount=0;activeAnalysisId=null;lockForm(false);$('submit-label').textContent='Analyze content';$('stop-batch').hidden=true;
   }
 });
 function showError(message){$('error').textContent=message;$('error').hidden=false;}

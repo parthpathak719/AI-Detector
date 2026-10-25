@@ -12,11 +12,18 @@ async def main():
         page = await browser.new_page(viewport={"width": 1440, "height": 1100})
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        page.on("console", lambda message: errors.append(message.text) if message.type == "error" and "422" not in message.text else None)
+        page.on("console", lambda message: errors.append(message.text) if message.type == "error" and "422" not in message.text and "409" not in message.text else None)
         await page.goto("http://127.0.0.1:8000")
         await page.get_by_text("Model ready", exact=True).wait_for()
         await page.evaluate("document.fonts.ready")
         await page.screenshot(path=str(out / "desktop.png"), full_page=True)
+        for language in ['en','hi','ta','kn','hi_en','ta_en','kn_en']:
+            await page.locator('#language').select_option(language)
+            await page.get_by_role('button',name='Try an example').click()
+            first=await page.locator('#text').input_value()
+            await page.get_by_role('button',name='Try an example').click()
+            assert first != await page.locator('#text').input_value()
+        await page.locator('#language').select_option('en')
         await page.get_by_role("button", name="Try an example").click()
         passage = await page.locator("#text").input_value()
         await page.get_by_role("button", name="Analyze content").click()
@@ -54,7 +61,8 @@ async def main():
         from io import BytesIO
         from pypdf import PdfReader
         report_text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO((out / 'lexora-analysis.pdf').read_bytes())).pages)
-        assert 'Segment 01' in report_text and 'Segment 09' in report_text
+        segment_count = int(await page.locator('#result-segments').inner_text())
+        assert 'Segment 01' in report_text and f'Segment {segment_count:02d}' in report_text
         await page.screenshot(path=str(out / "document-result.png"), full_page=True)
         import json
         jsonl = json.dumps({'text': passage, 'label': 'ai'}).encode()
@@ -125,6 +133,21 @@ async def main():
         await page.get_by_role("button", name="Analyze content").click()
         await page.locator("#error:not([hidden])").wait_for()
         assert await page.locator("#result").is_hidden()
+        # Stop before the analysis request arrives; the ID must survive that race.
+        await page.locator('#submit:not([disabled])').wait_for()
+        await page.get_by_role('button',name='Try an example').click()
+        hit=asyncio.Event(); release=asyncio.Event()
+        await page.route('**/api/analyze',hold_first)
+        await page.get_by_role('button',name='Analyze content').click()
+        await asyncio.wait_for(hit.wait(),10)
+        async with page.expect_response('**/api/cancel') as stopped:
+            await page.get_by_role('button',name='Stop analysis',exact=True).click()
+        assert (await (await stopped.value).json())['status']=='cancelled'
+        release.set()
+        await page.locator('#submit:not([disabled])').wait_for(timeout=60000)
+        assert await page.locator('#error').inner_text()=='Analysis stopped.'
+        assert await page.locator('#result').is_hidden()
+        await page.unroute('**/api/analyze',hold_first)
         await page.set_viewport_size({"width": 390, "height": 844})
         await page.get_by_role("button", name="Clear", exact=True).click()
         await page.screenshot(path=str(out / "mobile.png"), full_page=True)

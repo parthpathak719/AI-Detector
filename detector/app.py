@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 import threading
+import time
+from uuid import UUID, uuid4
 from typing import Literal
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -55,6 +57,8 @@ async def lifespan(app):
     app.state.detector = None
     app.state.busy = asyncio.Lock()
     app.state.analysis_cancel = None
+    app.state.analysis_id = None
+    app.state.cancelled_ids = {}
     try:
         app.state.detector = await run_in_threadpool(Detector)
     except Exception:
@@ -93,9 +97,10 @@ def health():
 class TextRequest(BaseModel):
     text: str = Field(min_length=1, max_length=MAX_CHARS)
     language: Language
+    analysis_id: UUID | None = None
 
 
-async def analyze(text, language):
+async def analyze(text, language, analysis_id=None):
     detector = getattr(app.state, "detector", None)
     if detector is None:
         raise HTTPException(503, "The model is not ready. Complete setup and restart the server.")
@@ -103,7 +108,12 @@ async def analyze(text, language):
         raise HTTPException(429, "Another passage is being analyzed. Please try again shortly.")
     async with app.state.busy:
         cancel_event = threading.Event()
+        analysis_id = str(analysis_id or uuid4())
+        app.state.analysis_id = analysis_id
         app.state.analysis_cancel = cancel_event
+        prune_cancellations()
+        if app.state.cancelled_ids.pop(analysis_id, None) is not None:
+            cancel_event.set()
         try:
             return await run_in_threadpool(detector.predict, text, language, cancel_event)
         except AnalysisCancelled as e:
@@ -112,20 +122,35 @@ async def analyze(text, language):
             raise HTTPException(422, str(e)) from e
         finally:
             app.state.analysis_cancel = None
+            app.state.analysis_id = None
+
+
+class CancelRequest(BaseModel):
+    analysis_id: UUID
+
+
+def prune_cancellations():
+    now = time.monotonic()
+    app.state.cancelled_ids = {key: expires for key, expires in app.state.cancelled_ids.items() if expires > now}
 
 
 @app.post("/api/cancel")
-def cancel_analysis():
-    cancel_event = getattr(app.state, "analysis_cancel", None)
-    if cancel_event is not None:
-        cancel_event.set()
+async def cancel_analysis(body: CancelRequest):
+    analysis_id = str(body.analysis_id)
+    if app.state.analysis_id == analysis_id:
+        app.state.analysis_cancel.set()
         return {"status": "stopping"}
-    return {"status": "idle"}
+    # Remember an early Stop while the corresponding request is still uploading.
+    prune_cancellations()
+    if len(app.state.cancelled_ids) >= 1024:
+        raise HTTPException(429, "Too many pending stop requests. Please retry shortly.")
+    app.state.cancelled_ids[analysis_id] = time.monotonic() + 15 * 60
+    return {"status": "cancelled"}
 
 
 @app.post("/api/analyze")
 async def analyze_text(body: TextRequest):
-    return await analyze(body.text, body.language)
+    return await analyze(body.text, body.language, body.analysis_id)
 
 
 @app.post("/api/analyze-file")

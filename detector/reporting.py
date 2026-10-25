@@ -6,7 +6,7 @@ import unicodedata
 
 from fpdf import FPDF
 from pydantic import BaseModel, Field, model_validator
-from detector.text import LANGUAGES, MAX_CHARS, MAX_WORDS
+from detector.text import LANGUAGES, MAX_CHARS, MAX_WORDS, MAX_SEGMENTS
 
 Score = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
 FONT_DIR = Path(__file__).parent / 'fonts'
@@ -18,8 +18,8 @@ class Scores(BaseModel):
 
 
 class Segment(BaseModel):
-    index: int = Field(ge=1, le=1024)
-    text: str = Field(max_length=100000)
+    index: int = Field(ge=1, le=MAX_SEGMENTS)
+    text: str = Field(max_length=MAX_CHARS)
     word_count: int = Field(ge=0, le=MAX_WORDS)
     token_count: int = Field(ge=0, le=128)
     label: Literal['human', 'ai']
@@ -37,12 +37,12 @@ class ReportRequest(BaseModel):
     label: Literal['human', 'ai']
     scores: Scores
     word_count: int = Field(ge=0, le=MAX_WORDS)
-    chunk_count: int = Field(ge=1, le=1024)
+    chunk_count: int = Field(ge=1, le=MAX_SEGMENTS)
     model_version: str = Field(max_length=120)
     encoder_variant: str = Field(max_length=120)
     family: Family | None = None
     warnings: list[Annotated[str, Field(max_length=2000)]] = Field(default_factory=list, max_length=30)
-    segments: list[Segment] = Field(min_length=1, max_length=1024)
+    segments: list[Segment] = Field(min_length=1, max_length=MAX_SEGMENTS)
 
     @model_validator(mode='after')
     def bound_report(self):

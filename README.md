@@ -55,7 +55,7 @@ The pinned PyTorch version does not support native Intel macOS. On an Intel Mac,
 
 ## Install the selected models
 
-**A fresh clone uses the earlier frozen baseline.** To use the selected fine-tuned models, obtain `selected_models.zip` from the completed training run. Save it in your project folder, stop the app with **Ctrl+C**, and extract it into a separate folder:
+**A fresh clone uses the bundled frozen baseline in `artifacts/baseline/`.** Complete fine-tuned models in `artifacts/` take priority; if any required file is missing, the server logs the fallback. An explicitly set `ARTIFACT_DIR` must be complete and never silently falls back. To use the selected fine-tuned models, obtain `selected_models.zip` from the completed training run. Save it in your project folder, stop the app with **Ctrl+C**, and extract it into a separate folder:
 
 Windows:
 
@@ -84,7 +84,7 @@ Set `ARTIFACT_DIR` again when opening a new terminal. If the selected models are
 3. Choose **Text language**. This selection applies to every file or record in the batch.
 4. For JSONL, choose **Combine into one document** or **Analyze each record separately** (up to 2,000 items per batch), then click **Analyze content**.
 5. Read the result and model-family scores. Multiple files/records appear in a batch list; select an item’s card to view its analysis and PDF report. The selected card stays highlighted. Failed items do not discard successful results.
-6. Click **Download PDF report** for the selected item’s summary, full segment analysis and extraction notes. **Stop after current item** stops queued work without discarding completed results.
+6. Click **Download PDF report** for the selected item’s summary, full segment analysis and extraction notes. **Stop analysis** cancels a single document between processing batches. **Stop after current item** stops queued work without discarding completed results.
 
 Limits: **10 MB per upload**, **500,000 extracted characters per document or independent JSONL record**, **50,000 cleaned words**, and **300 PDF pages**. Scanned PDFs require OCR before upload. JSONL accepts one JSON string or an object with a string `text` or `content` field per line; records can be combined per file or analyzed independently. IDs identify records but are not classified; labels and other metadata are ignored. For large JSONL datasets, choose independent mode; the 500,000-character limit in combined mode applies to the whole file. Large batches run sequentially: keep the tab open and the server running until completion. Long records still use segment averaging internally; independent records never share an aggregate score.
 
