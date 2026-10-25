@@ -17,6 +17,7 @@ from pypdf import PdfReader
 from detector.text import MAX_CHARS
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
+MAX_BATCH_ITEMS = 2000
 SUPPORTED = {".txt", ".md", ".jsonl", ".pdf", ".docx", ".doc"}
 
 
@@ -138,8 +139,10 @@ def doc_text(content):
         return bounded(text), ["Legacy Word extraction covers main-body text; embedded objects, headers and footnotes are excluded."]
 
 
-def jsonl_records(content):
+def jsonl_records(content, *, independent=False):
     """Read text records only; labels, IDs and other metadata never enter inference."""
+    if len(content) > MAX_FILE_BYTES:
+        raise ValueError("Upload a file of up to 10 MB.")
     source = content.decode("utf-8-sig")
     parts, size = [], 0
     for number, line in enumerate(source.splitlines(), 1):
@@ -159,9 +162,14 @@ def jsonl_records(content):
             raise ValueError(f'JSONL line {number} needs a nonempty string or a string field named "text" or "content".')
         if "\x00" in text:
             raise ValueError(f"JSONL line {number} contains unsupported null characters.")
+        if independent:
+            if len(parts) >= MAX_BATCH_ITEMS:
+                raise ValueError(f"Use up to {MAX_BATCH_ITEMS:,} independent JSONL records per batch.")
+            if len(text) > MAX_CHARS:
+                raise ValueError(f"JSONL line {number} exceeds {MAX_CHARS:,} characters. Split this record into smaller records.")
         size += len(text) + (2 if parts else 0)
-        if size > MAX_CHARS:
-            raise ValueError(f"The JSONL text exceeds {MAX_CHARS:,} characters. Split the file into smaller documents.")
+        if not independent and size > MAX_CHARS:
+            raise ValueError(f'The combined JSONL text exceeds {MAX_CHARS:,} characters. Choose "Analyze each record separately" for this file.')
         identifier = record.get('id') if isinstance(record, dict) else None
         label = str(identifier)[:120] if isinstance(identifier, (str, int)) else None
         parts.append({'text': text, 'line': number, 'id': label})

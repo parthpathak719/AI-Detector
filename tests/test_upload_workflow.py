@@ -28,9 +28,9 @@ def test_preview_extracts_without_ready_model(client):
 
 
 def test_preview_limits_and_malformed_input(client):
-    many='\n'.join(json.dumps({'text':'one record'}) for _ in range(101))
+    many='\n'.join(json.dumps({'text':'one record'}) for _ in range(2001))
     response=client.post('/api/preview-file',data={'jsonl_mode':'independent'},files={'file':('many.jsonl',many)})
-    assert response.status_code==422 and '100' in response.json()['detail']
+    assert response.status_code==422 and '2,000' in response.json()['detail']
     assert client.post('/api/preview-file',files={'file':('bad.jsonl','{broken')}).status_code==422
     assert client.post('/api/preview-file',files={'file':('bad.exe','hello')}).status_code==415
     assert client.post('/api/preview-file',data={'jsonl_mode':'invalid'},files={'file':('x.txt',PASSAGE)}).status_code==422
@@ -44,3 +44,24 @@ def test_document_preview_matches_extraction(client, suffix):
     assert response.status_code==200
     doc=response.json()['documents'][0]
     assert doc['text']==source and doc['notes']
+
+
+def test_thousand_record_preview_exceeds_combined_limit_but_keeps_records(client):
+    records=[{'id':str(i),'text':PASSAGE,'label':'ai'} for i in range(1000)]
+    content='\n'.join(json.dumps(row) for row in records)
+    response=client.post('/api/preview-file',data={'jsonl_mode':'independent'},files={'file':('large.jsonl',content)})
+    assert response.status_code==200
+    docs=response.json()['documents']
+    assert len(docs)==1000
+    assert all(doc['text']==PASSAGE for doc in docs)
+    assert docs[-1]['name']=='Line 1000 · ID 999'
+    combined=client.post('/api/preview-file',files={'file':('large.jsonl',content)})
+    assert combined.status_code==422
+    assert 'Analyze each record separately' in combined.json()['detail']
+
+
+def test_independent_record_character_limit(client):
+    content=json.dumps({'text':'a'*100001})
+    response=client.post('/api/preview-file',data={'jsonl_mode':'independent'},files={'file':('large.jsonl',content)})
+    assert response.status_code==422
+    assert 'line 1 exceeds' in response.json()['detail']
